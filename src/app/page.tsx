@@ -1,4 +1,5 @@
 import Header from "@/components/clientLayout/header";
+import Footer from "@/components/clientLayout/footer";
 import Link from "next/link";
 
 export default function Home() {
@@ -49,9 +50,7 @@ export default function Home() {
       </main>
 
       {/* Premium Footer */}
-      <footer className="bg-brand-cream border-t border-brand-gold/10 py-6 text-center text-xs text-brand-dark-light">
-        <p>&copy; {new Date().getFullYear()} Ikkaye's Kitchen. Crafted with Love. All Rights Reserved.</p>
-      </footer>
+      <Footer />
     </div>
   );
 }

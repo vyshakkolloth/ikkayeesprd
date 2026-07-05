@@ -15,7 +15,10 @@ function copyGeneratedAssets() {
     
     const files = [
       { src: 'restaurant_interior_1783228205107.png', dest: 'restaurant_interior.png' },
-      { src: 'chicken_mandi_1783228223725.png', dest: 'chicken_mandi.png' }
+      { src: 'chicken_mandi_1783228223725.png', dest: 'chicken_mandi.png' },
+      { src: 'mixed_grill_1783230740869.png', dest: 'mixed_grill.png' },
+      { src: 'seafood_platter_1783230777583.png', dest: 'seafood_platter.png' },
+      { src: 'kunafa_1783230799466.png', dest: 'kunafa.png' }
     ];
     
     files.forEach(file => {
@@ -46,14 +49,28 @@ export const metadata: Metadata = {
   },
 };
 
+function getMenuData() {
+  try {
+    const filePath = path.join(process.cwd(), "content", "menu.json");
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, "utf8");
+      return JSON.parse(content);
+    }
+  } catch (err) {
+    console.error("Error reading menu.json:", err);
+  }
+  return [];
+}
+
 export default function MenuPage() {
   // Trigger asset copying on server render
   copyGeneratedAssets();
+  const dishes = getMenuData();
 
   return (
     <main className="min-h-screen bg-brand-cream text-brand-dark flex justify-center w-full">
-      <div className="w-full max-w-md bg-[#FDFBF7] min-h-screen shadow-lg flex flex-col relative border-x border-brand-gold/10">
-        <MenuShell />
+      <div className="w-full max-w-md md:max-w-7xl bg-[#FDFBF7] min-h-screen shadow-lg flex flex-col relative md:border-x border-brand-gold/10">
+        <MenuShell initialDishes={dishes} />
       </div>
     </main>
   );
