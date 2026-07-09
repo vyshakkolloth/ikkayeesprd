@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Search, ShoppingCart, Star, Plus } from "lucide-react";
+import { ArrowLeft, Search, ShoppingCart, Star, Plus, Check, Minus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Unified Menu dataset supporting both Mobile (INR) and Desktop (USD) views
@@ -31,6 +31,73 @@ type DesktopCategory = (typeof DESKTOP_CATEGORIES)[number];
 export { MOBILE_CATEGORIES, DESKTOP_CATEGORIES };
 export type { MenuItem, MobileCategory, DesktopCategory };
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  "All Dishes": "/images/all_dishes.png",
+  "Popular": "/images/all_dishes.png",
+  "Mandi": "/images/chicken_mandi.png",
+  "Grills": "/images/mixed_grill.png",
+  "Grill": "/images/mixed_grill.png",
+  "Seafood": "/images/seafood_platter.png",
+  "Shawarma": "/images/chicken_shawarma.png",
+  "Biryani": "/images/thalassery_biryani.png",
+  "Biriyani": "/images/thalassery_biryani.png",
+  "Desserts": "/images/kunafa.png",
+  "Drinks": "/images/mint_limeade.png"
+};
+
+// Helper functions for dynamic details shown in the detail modal
+const getServingSize = (item: MenuItem) => {
+  if (item.id === "mandi-3") return "4-5 People";
+  const cat = item.categoryDesktop.toLowerCase();
+  if (cat.includes("mandi")) return "2-3 People";
+  if (cat.includes("grill") || cat.includes("seafood") || cat.includes("dessert")) return "1-2 People";
+  return "1 Person";
+};
+
+const getPrepTime = (item: MenuItem) => {
+  const cat = item.categoryDesktop.toLowerCase();
+  if (cat.includes("mandi")) return "25-30 Mins";
+  if (cat.includes("grill")) return "20-25 Mins";
+  if (cat.includes("seafood")) return "15-20 Mins";
+  if (cat.includes("biryani")) return "15 Mins";
+  if (cat.includes("shawarma")) return "5-10 Mins";
+  if (cat.includes("dessert")) return "5 Mins";
+  return "3-5 Mins";
+};
+
+const getChefRecommendation = (item: MenuItem) => {
+  const cat = item.categoryDesktop.toLowerCase();
+  if (
+    cat.includes("mandi") ||
+    cat.includes("grill") ||
+    cat.includes("seafood") ||
+    cat.includes("biryani") ||
+    cat.includes("shawarma")
+  ) {
+    return "Pair with: Fresh Mint Mojito";
+  }
+  if (cat.includes("dessert")) {
+    return "Pair with: Cardamom Karak Chai";
+  }
+  return "Pair with: Authentic Kunafa";
+};
+
+const getContainsNuts = (item: MenuItem) => {
+  const name = item.name.toLowerCase();
+  const desc = item.description.toLowerCase();
+  return (
+    name.includes("mandi") ||
+    desc.includes("nuts") ||
+    name.includes("kunafa") ||
+    desc.includes("pistachio")
+  );
+};
+
+const needsSpiceLevel = (item: MenuItem) => {
+  const cat = item.categoryDesktop.toLowerCase();
+  return !["drinks", "desserts"].includes(cat);
+};
+
 export default function MenuShell({ initialDishes = [] }: { initialDishes?: MenuItem[] }) {
   const [mobileCategory, setMobileCategory] = useState<MobileCategory>("Mandi");
   const [desktopCategory, setDesktopCategory] = useState<DesktopCategory>("All Dishes");
@@ -38,8 +105,13 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
   const [cartCount, setCartCount] = useState(0);
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
 
-  const handleAddItem = (itemId: string) => {
-    setCartCount((prev) => prev + 1);
+  // Detail Modal state
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [spiceLevel, setSpiceLevel] = useState<"Low" | "Medium" | "High">("Medium");
+  const [quantity, setQuantity] = useState<number>(1);
+
+  const handleAddItem = (itemId: string, qty: number = 1) => {
+    setCartCount((prev) => prev + qty);
     setAddedItems((prev) => ({ ...prev, [itemId]: true }));
     setTimeout(() => {
       setAddedItems((prev) => ({ ...prev, [itemId]: false }));
@@ -137,29 +209,74 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
             />
           </div>
 
-          {/* Mobile Categories Scrollbar */}
-          <div className="w-full overflow-x-auto scrollbar-none flex items-center gap-6 py-1 px-1 border-b border-brand-gold/5">
+          {/* Mobile Categories Scrollbar (Sticky) */}
+          <div className="sticky top-[60px] z-20 bg-[#FDFBF7]/95 backdrop-blur-md w-full overflow-x-auto scrollbar-none flex items-center gap-5 py-3 px-4 border-b border-[#FAF6EE] select-none -mx-4">
             {MOBILE_CATEGORIES.map((cat) => {
               const isActive = mobileCategory === cat;
+              const img = CATEGORY_IMAGES[cat] || "/images/all_dishes.png";
               return (
                 <button
                   key={cat}
                   onClick={() => setMobileCategory(cat)}
-                  className={cn(
-                    "font-sans text-sm pb-2 whitespace-nowrap transition-all duration-300 relative border-b-2",
-                    isActive
-                      ? "text-brand-dark font-bold border-brand-dark"
-                      : "text-brand-dark-light/60 hover:text-brand-dark border-transparent"
-                  )}
+                  className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none shrink-0"
                 >
-                  {cat}
+                  <div className="relative">
+                    {/* Circle Image Wrapper */}
+                    <div
+                      className={cn(
+                        "size-[72px] rounded-full overflow-hidden border-2 transition-all duration-300 p-0.5 bg-white",
+                        isActive
+                          ? "border-[#B88E4C] scale-105 shadow-md"
+                          : "border-transparent group-hover:border-[#B88E4C]/40"
+                      )}
+                    >
+                      <div className="relative w-full h-full rounded-full overflow-hidden">
+                        <Image
+                          src={img}
+                          alt={cat}
+                          fill
+                          sizes="72px"
+                          className="object-cover"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Active Tick Badge */}
+                    {isActive && (
+                      <div className="absolute -top-1 -right-1 bg-[#B88E4C] text-white rounded-full size-5.5 flex items-center justify-center border border-white shadow">
+                        <Check className="size-3.5 stroke-[3.5]" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className={cn(
+                      "font-sans text-[11px] tracking-wide transition-colors duration-300",
+                      isActive
+                        ? "text-[#B88E4C] font-bold"
+                        : "text-brand-dark-light/75 group-hover:text-brand-dark"
+                    )}
+                  >
+                    {cat}
+                  </span>
                 </button>
               );
             })}
           </div>
 
           {/* Mobile Bestseller Featured Banner */}
-          <div className="w-full relative h-[180px] rounded-2xl overflow-hidden shadow-md group">
+          <div
+            onClick={() => {
+              const item = initialDishes.find((d) => d.id === "mandi-3");
+              if (item) {
+                setSelectedItem(item);
+                setSpiceLevel("Medium");
+                setQuantity(1);
+              }
+            }}
+            className="w-full relative h-[180px] rounded-2xl overflow-hidden shadow-md group cursor-pointer"
+          >
             <Image
               src="/images/restaurant_interior.png"
               alt="Warm ambient restaurant interior"
@@ -184,7 +301,10 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
               </div>
 
               <button
-                onClick={() => handleAddItem("mandi-3")}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleAddItem("mandi-3");
+                }}
                 className={cn(
                   "h-9 px-5 bg-white text-brand-dark hover:bg-brand-cream font-sans text-xs font-semibold rounded-full shadow transition-all duration-200 active:scale-95 cursor-pointer",
                   addedItems["mandi-3"] && "bg-green-600 text-white hover:bg-green-600"
@@ -208,7 +328,12 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
               filteredMobileItems.map((item) => (
                 <div
                   key={item.id}
-                  className="w-full bg-white rounded-[20px] overflow-hidden border border-brand-gold/10 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md hover:border-brand-gold/20"
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setSpiceLevel("Medium");
+                    setQuantity(1);
+                  }}
+                  className="w-full bg-white rounded-[20px] overflow-hidden border border-brand-gold/10 shadow-sm flex flex-col group transition-all duration-300 hover:shadow-md hover:border-brand-gold/20 cursor-pointer"
                 >
                   {/* Image section with overlays */}
                   <div className="relative w-full h-[220px] overflow-hidden">
@@ -261,7 +386,10 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
                         ₹{item.priceINR}
                       </span>
                       <button
-                        onClick={() => handleAddItem(item.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddItem(item.id);
+                        }}
                         className={cn(
                           "h-8 px-5 rounded-full border border-brand-gold text-brand-gold hover:bg-brand-gold hover:text-white font-sans text-xs font-semibold tracking-wide transition-all duration-200 active:scale-95 cursor-pointer flex items-center justify-center",
                           addedItems[item.id] && "bg-brand-gold text-white border-brand-gold"
@@ -316,25 +444,62 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
           />
         </div>
 
-        {/* Desktop Categories Pills */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12 max-w-4xl mx-auto">
-          {DESKTOP_CATEGORIES.map((cat) => {
-            const isActive = desktopCategory === cat;
-            return (
-              <button
-                key={cat}
-                onClick={() => setDesktopCategory(cat)}
-                className={cn(
-                  "px-6 py-2 rounded-full font-sans text-xs font-medium transition-all duration-200 cursor-pointer shadow-sm",
-                  isActive
-                    ? "bg-[#B88E4C] text-white"
-                    : "bg-[#F3EFE6]/80 text-brand-dark hover:bg-brand-gold/15"
-                )}
-              >
-                {cat}
-              </button>
-            );
-          })}
+        {/* Desktop Categories Circular Triggers (Sticky Wrapper) */}
+        <div className="sticky top-20 z-20 bg-[#FDFBF7]/95 backdrop-blur-md w-full py-5 border-b border-brand-gold/5 -mx-8 px-8 lg:-mx-12 lg:px-12 mb-10 select-none">
+          <div className="flex flex-wrap justify-center gap-7 max-w-4xl mx-auto">
+            {DESKTOP_CATEGORIES.map((cat) => {
+              const isActive = desktopCategory === cat;
+              const img = CATEGORY_IMAGES[cat] || "/images/all_dishes.png";
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setDesktopCategory(cat)}
+                  className="flex flex-col items-center gap-2 group cursor-pointer focus:outline-none"
+                >
+                  <div className="relative animate-fade-in duration-300">
+                    {/* Circle Image Wrapper */}
+                    <div
+                      className={cn(
+                        "size-[80px] rounded-full overflow-hidden border-2 transition-all duration-300 p-0.5 bg-white",
+                        isActive
+                          ? "border-[#B88E4C] scale-105 shadow-md"
+                          : "border-transparent group-hover:border-[#B88E4C]/40"
+                      )}
+                    >
+                      <div className="relative w-full h-full rounded-full overflow-hidden">
+                        <Image
+                          src={img}
+                          alt={cat}
+                          fill
+                          sizes="80px"
+                          className="object-cover"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Active Tick Badge */}
+                    {isActive && (
+                      <div className="absolute -top-1 -right-1 bg-[#B88E4C] text-white rounded-full size-6.5 flex items-center justify-center border border-white shadow">
+                        <Check className="size-4 stroke-[3.5]" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Label */}
+                  <span
+                    className={cn(
+                      "font-sans text-xs tracking-wide transition-colors duration-300",
+                      isActive
+                        ? "text-[#B88E4C] font-bold"
+                        : "text-brand-dark-light/75 group-hover:text-brand-dark"
+                    )}
+                  >
+                    {cat}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Top Picks Section (only visible if there are top picks to show) */}
@@ -347,7 +512,12 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
               {topPicks.map((pick) => (
                 <div
                   key={pick.id}
-                  className="bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-col group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300"
+                  onClick={() => {
+                    setSelectedItem(pick);
+                    setSpiceLevel("Medium");
+                    setQuantity(1);
+                  }}
+                  className="bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-col group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 cursor-pointer"
                 >
                   <div className="relative w-full h-48 overflow-hidden">
                     <Image
@@ -381,7 +551,10 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
                         ${pick.priceUSD.toFixed(2)}
                       </span>
                       <button
-                        onClick={() => handleAddItem(pick.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddItem(pick.id);
+                        }}
                         className={cn(
                           "size-8 rounded-full bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm border border-transparent",
                           addedItems[pick.id] && "bg-brand-gold text-white"
@@ -432,7 +605,12 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
                   {categoryItems.map((item) => (
                     <div
                       key={item.id}
-                      className="bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-row items-stretch group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 min-h-[120px]"
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setSpiceLevel("Medium");
+                        setQuantity(1);
+                      }}
+                      className="bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-row items-stretch group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 min-h-[120px] cursor-pointer"
                     >
                       {/* Left: Square Image */}
                       <div className="relative w-28 sm:w-36 shrink-0 overflow-hidden">
@@ -470,7 +648,10 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
                             ${item.priceUSD.toFixed(2)}
                           </span>
                           <button
-                            onClick={() => handleAddItem(item.id)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddItem(item.id);
+                            }}
                             className={cn(
                               "size-7 rounded-full bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white flex items-center justify-center transition-all duration-200 active:scale-90 cursor-pointer shadow-sm border border-transparent",
                               addedItems[item.id] && "bg-brand-gold text-white"
@@ -502,6 +683,211 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
           </div>
         )}
       </div>
+
+      {/* ----------------------------------------------------
+          PRODUCT DETAIL MODAL
+          ---------------------------------------------------- */}
+      {selectedItem && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in duration-200"
+          onClick={() => setSelectedItem(null)}
+        >
+          <div 
+            className="relative bg-[#FDFBF7] w-full max-w-[460px] rounded-3xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Scrollable Container */}
+            <div className="overflow-y-auto w-full scrollbar-thin">
+              {/* Header Image */}
+              <div className="relative h-[220px] w-full shrink-0">
+                <Image
+                  src={selectedItem.image}
+                  alt={selectedItem.name}
+                  fill
+                  sizes="460px"
+                  className="object-cover"
+                  priority
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                
+                {/* Close Button */}
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="absolute top-4 right-4 z-10 size-8 rounded-full bg-white hover:bg-brand-cream text-brand-dark flex items-center justify-center shadow-md transition-all duration-200 hover:scale-105 cursor-pointer border border-brand-gold/10"
+                  aria-label="Close modal"
+                >
+                  <X className="size-4 stroke-[2.5]" />
+                </button>
+              </div>
+
+              {/* Content Panel */}
+              <div className="px-6 py-5 flex flex-col">
+                {/* Bestseller / Chef Recommended Badge */}
+                <div>
+                  {selectedItem.isTopPick ? (
+                    <span className="inline-block border border-[#B88E4C]/30 bg-[#B88E4C]/5 text-[#B88E4C] text-[10px] font-bold tracking-widest px-2.5 py-0.5 rounded uppercase font-sans">
+                      Bestseller
+                    </span>
+                  ) : selectedItem.isChefRecommended ? (
+                    <span className="inline-block border border-[#8A5A36]/30 bg-[#8A5A36]/5 text-[#8A5A36] text-[10px] font-bold tracking-widest px-2.5 py-0.5 rounded uppercase font-sans">
+                      Chef Recommended
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Title */}
+                <h2 className="font-playfair text-2xl font-bold text-brand-dark leading-tight mt-2.5">
+                  {selectedItem.name}
+                </h2>
+
+                {/* Spice Level Selection (only for savory items) */}
+                {needsSpiceLevel(selectedItem) && (
+                  <div className="mt-4">
+                    <span className="block font-sans text-[10px] font-bold tracking-widest text-brand-dark-light/65 uppercase">
+                      Spice Level
+                    </span>
+                    <div className="flex gap-2.5 mt-1.5">
+                      {(["Low", "Medium", "High"] as const).map((level) => {
+                        const isSelected = spiceLevel === level;
+                        return (
+                          <button
+                            key={level}
+                            onClick={() => setSpiceLevel(level)}
+                            className={cn(
+                              "px-5 py-1.5 rounded-full border text-xs font-sans transition-all duration-200 cursor-pointer",
+                              isSelected
+                                ? "border-[#B88E4C] text-[#B88E4C] bg-[#B88E4C]/5 font-semibold"
+                                : "border-brand-gold/15 text-brand-dark-light/80 hover:border-[#B88E4C]/50 hover:bg-brand-gold/5 font-medium"
+                            )}
+                          >
+                            {level}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Serving Size & Prep Time Section */}
+                <div className="grid grid-cols-2 gap-4 border-t border-b border-brand-gold/10 py-3.5 my-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-sans text-[9px] font-bold tracking-widest text-[#8A6D3B] uppercase">
+                      Serving Size
+                    </span>
+                    <span className="font-sans text-xs font-semibold text-brand-dark">
+                      {getServingSize(selectedItem)}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="font-sans text-[9px] font-bold tracking-widest text-[#8A6D3B] uppercase">
+                      Prep Time
+                    </span>
+                    <span className="font-sans text-xs font-semibold text-brand-dark">
+                      {getPrepTime(selectedItem)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Price Display */}
+                <div>
+                  {/* Responsive price: shows INR on mobile layout (hidden on md), USD on desktop layout (hidden on mobile) */}
+                  <span className="block md:hidden font-sans text-2xl font-bold text-[#B88E4C]">
+                    ₹{selectedItem.priceINR}
+                  </span>
+                  <span className="hidden md:block font-sans text-2xl font-bold text-[#B88E4C]">
+                    ${selectedItem.priceUSD.toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Description */}
+                <p className="font-sans text-[12px] font-light text-brand-dark-light/90 leading-relaxed mt-2">
+                  {selectedItem.description}
+                </p>
+
+                {/* Dietary and Prep Badges */}
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {/* Veg / Non-Veg Badge */}
+                  <span className="bg-[#F4EFE5] text-brand-dark text-[10px] font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 border border-brand-gold/10">
+                    <span className={cn(
+                      "size-1.5 rounded-full",
+                      selectedItem.isVeg ? "bg-green-600" : "bg-red-600"
+                    )} />
+                    {selectedItem.isVeg ? "100% Veg" : "100% Halal"}
+                  </span>
+
+                  {/* Contains Nuts Badge */}
+                  {getContainsNuts(selectedItem) && (
+                    <span className="bg-[#F4EFE5] text-[#8A5A36] text-[10px] font-semibold px-3 py-1 rounded-full flex items-center gap-1.5 border border-brand-gold/10">
+                      🥜 Contains Nuts
+                    </span>
+                  )}
+                </div>
+
+                {/* Chef Recommendation / Pairing Card */}
+                <div className="bg-[#F6EFE2] rounded-xl p-3.5 mt-4 border border-[#B88E4C]/10 flex flex-col gap-0.5">
+                  <span className="font-sans text-[10px] font-bold tracking-wider text-[#8D6B3E] uppercase">
+                    Chef Recommendation
+                  </span>
+                  <span className="font-sans text-xs text-brand-dark font-medium">
+                    {getChefRecommendation(selectedItem)}
+                  </span>
+                </div>
+
+                {/* Quantity Selector Section */}
+                <div className="flex items-center justify-between mt-5 pt-3.5 border-t border-brand-gold/10">
+                  <span className="font-sans text-sm font-semibold text-brand-dark">
+                    Quantity
+                  </span>
+                  
+                  {/* Stepper */}
+                  <div className="flex items-center gap-3.5 bg-[#F4EFE5] px-3.5 py-1.5 rounded-full border border-brand-gold/5">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      disabled={quantity <= 1}
+                      className={cn(
+                        "size-5 rounded-full flex items-center justify-center text-brand-dark transition-colors cursor-pointer",
+                        quantity <= 1 ? "opacity-35 cursor-not-allowed" : "hover:bg-brand-gold/10"
+                      )}
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="size-3.5 stroke-[2.5]" />
+                    </button>
+                    <span className="font-sans text-sm font-bold w-4 text-center text-brand-dark">
+                      {quantity}
+                    </span>
+                    <button
+                      onClick={() => setQuantity((q) => q + 1)}
+                      className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="size-3.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Add to Selection Button */}
+                <button
+                  onClick={() => {
+                    handleAddItem(selectedItem.id, quantity);
+                    setSelectedItem(null);
+                  }}
+                  className="w-full h-11 bg-[#2A1E17] hover:bg-[#3B2C24] text-white font-sans text-sm font-semibold rounded-full shadow-md transition-all duration-200 mt-5 active:scale-[0.98] cursor-pointer"
+                >
+                  Add To Selection
+                </button>
+
+                {/* Continue Browsing */}
+                <button
+                  onClick={() => setSelectedItem(null)}
+                  className="w-full text-center text-[11px] text-brand-dark-light/70 hover:text-brand-dark transition-colors mt-3.5 font-sans font-medium cursor-pointer"
+                >
+                  Continue Browsing
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

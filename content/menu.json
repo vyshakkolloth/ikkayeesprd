@@ -135,7 +135,7 @@
     "rating": 4.7,
     "isChefRecommended": false,
     "isVeg": false,
-    "image": "/images/mixed_grill.png",
+    "image": "/images/chicken_shawarma.png",
     "categoryMobile": "Popular",
     "categoryDesktop": "Shawarma",
     "isTopPick": false
@@ -149,7 +149,7 @@
     "rating": 4.9,
     "isChefRecommended": true,
     "isVeg": false,
-    "image": "/images/chicken_mandi.png",
+    "image": "/images/thalassery_biryani.png",
     "categoryMobile": "Biriyani",
     "categoryDesktop": "Biryani",
     "isTopPick": false
@@ -163,7 +163,7 @@
     "rating": 4.5,
     "isChefRecommended": false,
     "isVeg": true,
-    "image": "/images/restaurant_interior.png",
+    "image": "/images/mint_limeade.png",
     "categoryMobile": "Popular",
     "categoryDesktop": "Drinks",
     "isTopPick": false
