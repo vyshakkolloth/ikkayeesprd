@@ -15,7 +15,17 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon, UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon, SearchIcon, DatabaseIcon, FileChartColumnIcon, FileIcon, CommandIcon } from "lucide-react"
+import {
+  LayoutDashboardIcon, ListIcon, ChartBarIcon, FolderIcon,
+  UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon,
+  SearchIcon, DatabaseIcon, FileChartColumnIcon,
+  FileIcon, CommandIcon, UtensilsCrossed,
+  Salad
+} from "lucide-react"
+
+import { usePathname } from "next/navigation";
+
+
 
 const data = {
   user: {
@@ -26,26 +36,26 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: (
         <LayoutDashboardIcon
         />
       ),
     },
     {
-      title: "Lifecycle",
-      url: "#",
+      title: "Category Management",
+      url: `/dashboard/category`,
       icon: (
-        <ListIcon
-        />
+
+        <UtensilsCrossed />
       ),
     },
     {
-      title: "Analytics",
-      url: "#",
+      title: "Product Management",
+      url: "/dashboard/product",
       icon: (
-        <ChartBarIcon
-        />
+        <Salad />
+
       ),
     },
     {
@@ -58,7 +68,7 @@ const data = {
     },
     {
       title: "Team",
-      url: "#",
+      url: "/dashboard/usermanagment",
       icon: (
         <UsersIcon
         />
@@ -174,19 +184,41 @@ const data = {
       ),
     },
   ],
+
 }
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & {
+  user?: {
+    name: string
+    email: string
+    avatar?: string
+  }
+}) {
+  const finalUser = user
+    ? {
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar || "/avatars/shadcn.jpg",
+    }
+    : data.user
+
+  const pathname = usePathname();
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              className="data-[slot=sidebar-menu-button]:p-1.5!"
-              render={<a href="#" />}
-            >
-              <CommandIcon className="size-5!" />
-              <span className="text-base font-semibold">Acme Inc.</span>
+            <SidebarMenuButton size="lg" className="h-12 bg-accent/50">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <CommandIcon className="size-4" />
+              </div>
+              <div className="grid flex-1 text-start text-sm leading-tight">
+                <span className="truncate font-semibold">Acme Inc</span>
+                <span className="truncate text-xs">Enterprise</span>
+              </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -197,7 +229,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={finalUser} />
       </SidebarFooter>
     </Sidebar>
   )

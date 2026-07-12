@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,16 +30,24 @@ export function NavDocuments({
   }[]
 }) {
   const { isMobile } = useSidebar()
+  const pathname = usePathname()
+
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>Documents</SidebarGroupLabel>
       <SidebarMenu>
-        {items.map((item) => (
-          <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton render={<a href={item.url} />}>
-              {item.icon}
-              <span>{item.name}</span>
-            </SidebarMenuButton>
+        {items.map((item) => {
+          const isActive = item.url !== "#" && pathname.startsWith(item.url)
+
+          return (
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton
+                isActive={isActive}
+                render={<Link href={item.url} />}
+              >
+                {item.icon}
+                <span>{item.name}</span>
+              </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
@@ -75,7 +85,7 @@ export function NavDocuments({
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
-        ))}
+        )})}
         <SidebarMenuItem>
           <SidebarMenuButton className="text-sidebar-foreground/70">
             <MoreHorizontalIcon className="text-sidebar-foreground/70" />
