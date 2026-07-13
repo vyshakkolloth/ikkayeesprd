@@ -14,7 +14,7 @@ export default async function CategoryPage() {
   });
 
   // Serialize MongoDB ObjectId and Date fields to avoid React Server Component transfer errors
-  const initialCategories = result.items.map((cat) => ({
+  const initialCategories = result.items.map((cat: any) => ({
     _id: cat._id ? cat._id.toString() : "",
     name: cat.name,
     slug: cat.slug,

@@ -22,18 +22,19 @@ export default async function DashBoardLayout({
         <SidebarProvider
             style={
                 {
-                    "--sidebar-width": "calc(var(--spacing) * 72)",
-                    "--header-height": "calc(var(--spacing) * 12)",
+                    "--sidebar-width": "16rem",
+                    "--header-height": "3.5rem",
                 } as React.CSSProperties
             }
         >
-            <div className=" border-amber-950 border-2 ">
-                <AppSidebar variant="inset" user={user} />
-            </div>
-            <SidebarInset>
 
+            <AppSidebar variant="inset" user={user} />
+
+            <SidebarInset>
                 <SiteHeader />
-                {children}
+                <div className="flex flex-1 flex-col gap-4 p-4 pt-0 lg:p-6 lg:pt-0">
+                    {children}
+                </div>
             </SidebarInset>
         </SidebarProvider>
     </>

@@ -59,7 +59,7 @@ const data = {
       ),
     },
     {
-      title: "Projects",
+      title: "Report",
       url: "#",
       icon: (
         <FolderIcon
@@ -225,8 +225,8 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {/* <NavDocuments items={data.documents} /> */}
+        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={finalUser} />

@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 import { decrypt } from "@/lib/auth/session";
 
 export default async function proxy(request: NextRequest) {
+
   const { pathname } = request.nextUrl;
 
   // Protect /dashboard and all subroutes

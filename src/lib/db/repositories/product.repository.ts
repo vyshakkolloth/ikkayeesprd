@@ -72,11 +72,11 @@ class ProductRepository extends BaseRepository<Product> {
 
     // spiceLevel filter
     if (options.spiceLevel && options.spiceLevel !== "all") {
-      match.spiceLevel = options.spiceLevel;
+      match.spiceLevel = options.spiceLevel as Product["spiceLevel"];
     }
 
     // Setup sorting options
-    const sort: Sort = {};
+    const sort: Record<string, any> = {};
     const sortBy = options.sortBy || "sortOrder";
     const sortOrder = options.sortOrder === "desc" ? -1 : 1;
 

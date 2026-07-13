@@ -82,6 +82,7 @@ interface Product {
   sortOrder: number
   active: boolean
   topPick?: boolean
+  pairedProductId?: string | null
   updatedAt: string
 }
 
@@ -89,12 +90,14 @@ interface ProductListProps {
   initialProducts: Product[]
   initialTotal: number
   categories: { _id: string; name: { en: string; ar: string } }[]
+  allProducts?: { _id: string; name: { en: string; ar: string } }[]
 }
 
 export function ProductList({
   initialProducts = [],
   initialTotal = 0,
   categories = [],
+  allProducts = [],
 }: ProductListProps) {
   const isMobile = useIsMobile()
 
@@ -131,6 +134,12 @@ export function ProductList({
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = React.useState(false)
   const [isDeleting, setIsDeleting] = React.useState(false)
+
+  const getPairedName = (pairedId?: string | null) => {
+    if (!pairedId) return null
+    const found = allProducts.find((p) => p._id === pairedId)
+    return found ? found.name : null
+  }
 
   // Search Debouncing
   React.useEffect(() => {
@@ -294,7 +303,7 @@ export function ProductList({
           
           <div className="flex flex-wrap items-center gap-2">
             {/* Category Filter */}
-            <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <Select value={filterCategory} onValueChange={(val) => val && setFilterCategory(val)}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
@@ -309,7 +318,7 @@ export function ProductList({
             </Select>
 
             {/* Veg/Dietary Filter */}
-            <Select value={filterVeg} onValueChange={setFilterVeg}>
+            <Select value={filterVeg} onValueChange={(val) => val && setFilterVeg(val)}>
               <SelectTrigger className="w-[130px]">
                 <SelectValue placeholder="Dietary" />
               </SelectTrigger>
@@ -321,7 +330,7 @@ export function ProductList({
             </Select>
 
             {/* Active status Filter */}
-            <Select value={filterActive} onValueChange={setFilterActive}>
+            <Select value={filterActive} onValueChange={(val) => val && setFilterActive(val)}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -334,10 +343,12 @@ export function ProductList({
 
             {/* Advanced Trigger */}
             <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="icon" title="More Filters">
-                  <SlidersHorizontalIcon className="size-4" />
-                </Button>
+              <DialogTrigger
+                render={
+                  <Button variant="outline" size="icon" title="More Filters" />
+                }
+              >
+                <SlidersHorizontalIcon className="size-4" />
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
@@ -349,7 +360,7 @@ export function ProductList({
                     {/* Chef Recommendation Filter */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold">Chef Pick</label>
-                      <Select value={filterChef} onValueChange={setFilterChef}>
+                      <Select value={filterChef} onValueChange={(val) => val && setFilterChef(val)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -363,7 +374,7 @@ export function ProductList({
                     {/* Top Pick Filter */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold">Top Pick</label>
-                      <Select value={filterTopPick} onValueChange={setFilterTopPick}>
+                      <Select value={filterTopPick} onValueChange={(val) => val && setFilterTopPick(val)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -377,7 +388,7 @@ export function ProductList({
                     {/* Spice Level Filter */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold">Spice Level</label>
-                      <Select value={filterSpice} onValueChange={setFilterSpice}>
+                      <Select value={filterSpice} onValueChange={(val) => val && setFilterSpice(val)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -395,7 +406,7 @@ export function ProductList({
                     {/* Sort By Field */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold">Sort By</label>
-                      <Select value={sortBy} onValueChange={setSortBy}>
+                      <Select value={sortBy} onValueChange={(val) => val && setSortBy(val)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -412,7 +423,7 @@ export function ProductList({
                     {/* Sort Order */}
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-semibold">Direction</label>
-                      <Select value={sortOrder} onValueChange={(val: any) => setSortOrder(val)}>
+                      <Select value={sortOrder} onValueChange={(val) => val && setSortOrder(val as "asc" | "desc")}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -425,8 +436,8 @@ export function ProductList({
                   </div>
                 </div>
                 <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button">Apply Filters</Button>
+                  <DialogClose render={<Button type="button" />}>
+                    Apply Filters
                   </DialogClose>
                 </DialogFooter>
               </DialogContent>
@@ -435,15 +446,17 @@ export function ProductList({
             {/* Create Product Button */}
             {isMobile ? (
               <Drawer open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DrawerTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      setEditingProduct(null)
-                      setIsFormOpen(true)
-                    }}
-                  >
-                    <PlusIcon className="size-4 mr-1" /> Add Product
-                  </Button>
+                <DrawerTrigger
+                  render={
+                    <Button
+                      onClick={() => {
+                        setEditingProduct(null)
+                        setIsFormOpen(true)
+                      }}
+                    />
+                  }
+                >
+                  <PlusIcon className="size-4 mr-1" /> Add Product
                 </DrawerTrigger>
                 <DrawerContent className="max-h-[92vh]">
                   <DrawerHeader>
@@ -453,6 +466,7 @@ export function ProductList({
                   <div className="px-4 pb-4">
                     <ProductForm
                       categories={categories}
+                      allProducts={allProducts}
                       onSubmit={handleFormSubmit}
                       isSubmitting={isSubmittingForm}
                       submitLabel="Add Product"
@@ -462,15 +476,17 @@ export function ProductList({
               </Drawer>
             ) : (
               <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    onClick={() => {
-                      setEditingProduct(null)
-                      setIsFormOpen(true)
-                    }}
-                  >
-                    <PlusIcon className="size-4 mr-1" /> Add Product
-                  </Button>
+                <DialogTrigger
+                  render={
+                    <Button
+                      onClick={() => {
+                        setEditingProduct(null)
+                        setIsFormOpen(true)
+                      }}
+                    />
+                  }
+                >
+                  <PlusIcon className="size-4 mr-1" /> Add Product
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-4xl max-h-[90vh]">
                   <DialogHeader>
@@ -482,6 +498,7 @@ export function ProductList({
                   <ProductForm
                     initialData={editingProduct}
                     categories={categories}
+                    allProducts={allProducts}
                     onSubmit={handleFormSubmit}
                     isSubmitting={isSubmittingForm}
                     submitLabel={editingProduct ? "Update Product" : "Create Product"}
@@ -557,8 +574,22 @@ export function ProductList({
                     </TableCell>
 
                     {/* Names */}
-                    <TableCell className="font-semibold">{product.name.en}</TableCell>
-                    <TableCell>{product.name.ar}</TableCell>
+                    <TableCell className="font-semibold">
+                      <div>{product.name.en}</div>
+                      {product.pairedProductId && (
+                        <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                          Pair with: <span className="font-semibold text-primary">{getPairedName(product.pairedProductId)?.en || "Item"}</span>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div>{product.name.ar}</div>
+                      {product.pairedProductId && (
+                        <div className="text-[10px] text-muted-foreground font-normal mt-0.5" dir="rtl">
+                          شريك مع: <span className="font-semibold text-primary">{getPairedName(product.pairedProductId)?.ar || "صنف"}</span>
+                        </div>
+                      )}
+                    </TableCell>
 
                     {/* Category */}
                     <TableCell>

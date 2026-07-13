@@ -50,6 +50,7 @@ const productFormSchema = z.object({
   chefRecommended: z.boolean().default(false),
   topPick: z.boolean().default(false),
   spiceLevel: z.enum(["low", "medium", "high"]).default("medium"),
+  pairedProductId: z.string().optional().nullable().default(""),
   servingSize: z.string().optional().default(""),
   prepTime: z.string().optional().default(""),
   isVeg: z.boolean().default(false),
@@ -91,6 +92,7 @@ const slugify = (text: string) => {
 interface ProductFormProps {
   initialData?: any
   categories: { _id: string; name: { en: string; ar: string } }[]
+  allProducts?: { _id: string; name: { en: string; ar: string } }[]
   onSubmit: (data: any) => Promise<void>
   isSubmitting?: boolean
   submitLabel?: string
@@ -99,6 +101,7 @@ interface ProductFormProps {
 export function ProductForm({
   initialData,
   categories = [],
+  allProducts = [],
   onSubmit,
   isSubmitting = false,
   submitLabel = "Save Product",
@@ -110,11 +113,19 @@ export function ProductForm({
   const [catSearch, setCatSearch] = React.useState("")
   const catContainerRef = React.useRef<HTMLDivElement>(null)
 
+  // Custom Searchable Product Pairing State
+  const [isPairOpen, setIsPairOpen] = React.useState(false)
+  const [pairSearch, setPairSearch] = React.useState("")
+  const pairContainerRef = React.useRef<HTMLDivElement>(null)
+
   // Close dropdown on outside click
   React.useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (catContainerRef.current && !catContainerRef.current.contains(e.target as Node)) {
         setIsCatOpen(false)
+      }
+      if (pairContainerRef.current && !pairContainerRef.current.contains(e.target as Node)) {
+        setIsPairOpen(false)
       }
     }
     document.addEventListener("mousedown", handleOutsideClick)
@@ -122,12 +133,12 @@ export function ProductForm({
   }, [])
 
   // Custom lightweight Zod Resolver to run validation inside React Hook Form
-  const customResolver = React.useCallback(async (values: ProductFormValues) => {
+  const customResolver = React.useCallback(async (values: any) => {
     const result = productFormSchema.safeParse({
       ...values,
       price: values.price === "" ? NaN : Number(values.price),
       sortOrder: values.sortOrder === "" ? 0 : Number(values.sortOrder),
-      portions: (values.portions || []).map((port) => ({
+      portions: (values.portions || []).map((port: any) => ({
         ...port,
         price: port.price === "" ? NaN : Number(port.price),
       })),
@@ -180,6 +191,7 @@ export function ProductForm({
       chefRecommended: initialData?.chefRecommended || false,
       topPick: initialData?.topPick || false,
       spiceLevel: initialData?.spiceLevel || "medium",
+      pairedProductId: initialData?.pairedProductId || "",
       servingSize: initialData?.servingSize || "",
       prepTime: initialData?.prepTime || "",
       isVeg: initialData?.isVeg || false,
@@ -205,6 +217,7 @@ export function ProductForm({
   const watchChefRecommended = watch("chefRecommended")
   const watchTopPick = watch("topPick")
   const watchIsVeg = watch("isVeg")
+  const watchPairedProductId = watch("pairedProductId")
 
   // Auto-slugify English name if not manually modified and not editing
   React.useEffect(() => {
@@ -232,6 +245,7 @@ export function ProductForm({
       ...data,
       price: finalPrice,
       portions: data.hasPortions ? data.portions : [],
+      pairedProductId: data.pairedProductId ? data.pairedProductId : null,
     }
 
     await onSubmit(payload)
@@ -242,6 +256,14 @@ export function ProductForm({
     c.name.en.toLowerCase().includes(catSearch.toLowerCase()) ||
     c.name.ar.toLowerCase().includes(catSearch.toLowerCase())
   )
+
+  const selectedPairedProduct = (allProducts || []).find((p) => p._id === watchPairedProductId)
+  const filteredProducts = (allProducts || [])
+    .filter((p) => p._id !== initialData?._id)
+    .filter((p) =>
+      p.name.en.toLowerCase().includes(pairSearch.toLowerCase()) ||
+      p.name.ar.toLowerCase().includes(pairSearch.toLowerCase())
+    )
 
   return (
     <form onSubmit={handleSubmit(onSubmitHandler)} className="space-y-6 max-h-[80vh] overflow-y-auto px-1">
@@ -314,7 +336,7 @@ export function ProductForm({
       {/* 2. Category Selection & Image */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Category */}
-        <Card>
+        <Card className="overflow-visible">
           <CardHeader>
             <CardTitle>Menu Category</CardTitle>
             <CardDescription>Assign this product to a menu section.</CardDescription>
@@ -629,6 +651,84 @@ export function ProductForm({
           </CardContent>
         </Card>
       </div>
+
+      {/* 5. Recommended Pairing selection */}
+      <Card className="overflow-visible">
+        <CardHeader>
+          <CardTitle>Recommended Pairing</CardTitle>
+          <CardDescription>Recommend a matching drink, dessert, or side with this menu item.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Field data-invalid={!!errors.pairedProductId}>
+            <FieldLabel htmlFor="pairedProductId">Paired Product Recommendation</FieldLabel>
+            <div ref={pairContainerRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setIsPairOpen(!isPairOpen)}
+                disabled={isSubmitting}
+                className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-left"
+              >
+                <span className="truncate">
+                  {selectedPairedProduct
+                    ? `${selectedPairedProduct.name.en} / ${selectedPairedProduct.name.ar}`
+                    : "Select a pairing product..."}
+                </span>
+                <ChevronDownIcon className="size-4 opacity-50" />
+              </button>
+
+              {isPairOpen && (
+                <div className="absolute z-50 w-full mt-1 bg-popover text-popover-foreground border rounded-lg shadow-md max-h-60 overflow-hidden flex flex-col">
+                  <div className="p-2 border-b">
+                    <Input
+                      placeholder="Search product..."
+                      value={pairSearch}
+                      onChange={(e) => setPairSearch(e.target.value)}
+                      className="h-8"
+                      autoFocus
+                    />
+                  </div>
+                  <div className="overflow-y-auto max-h-48 p-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue("pairedProductId", "", { shouldValidate: true })
+                        setIsPairOpen(false)
+                        setPairSearch("")
+                      }}
+                      className="flex w-full items-center justify-between px-2.5 py-1.5 text-sm rounded-md text-left text-destructive hover:bg-destructive/10"
+                    >
+                      <span>Clear Selection</span>
+                    </button>
+                    {filteredProducts.length === 0 ? (
+                      <div className="text-sm text-muted-foreground p-2 text-center">No matching products</div>
+                    ) : (
+                      filteredProducts.map((prod) => (
+                        <button
+                          key={prod._id}
+                          type="button"
+                          onClick={() => {
+                            setValue("pairedProductId", prod._id, { shouldValidate: true })
+                            setIsPairOpen(false)
+                            setPairSearch("")
+                          }}
+                          className={cn(
+                            "flex w-full items-center justify-between px-2.5 py-1.5 text-sm rounded-md text-left hover:bg-accent hover:text-accent-foreground",
+                            watchPairedProductId === prod._id && "bg-accent font-medium"
+                          )}
+                        >
+                          <span>{prod.name.en} / {prod.name.ar}</span>
+                          {watchPairedProductId === prod._id && <CheckIcon className="size-3.5" />}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            {errors.pairedProductId && <FieldError>{errors.pairedProductId.message}</FieldError>}
+          </Field>
+        </CardContent>
+      </Card>
 
       {/* 5. SEO */}
       <Card>

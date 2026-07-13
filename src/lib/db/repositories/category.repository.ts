@@ -64,7 +64,7 @@ class CategoryRepository extends BaseRepository<Category> {
     }
 
     // 3. Sorting
-    const sort: Sort = {};
+    const sort: Record<string, any> = {};
     const sortBy = options.sortBy || "priority";
     const sortOrder = options.sortOrder === "desc" ? -1 : 1;
     

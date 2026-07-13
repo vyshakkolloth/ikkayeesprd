@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, Minus, Plus, Send, ArrowLeft, Clock, Users, Check } from "lucide-react";
@@ -50,26 +50,42 @@ const INITIAL_DISHES: SelectedDish[] = [
 ];
 
 export default function MySectionPage() {
-  const [items, setItems] = useState<SelectedDish[]>(INITIAL_DISHES);
+  const [items, setItems] = useState<SelectedDish[]>([]);
   const [specialRequests, setSpecialRequests] = useState("");
   const [isShared, setIsShared] = useState(false);
+
+  // Load selection from localStorage on mount
+  React.useEffect(() => {
+    try {
+      const selection = JSON.parse(localStorage.getItem("menu-selection") || "[]");
+      setItems(selection);
+    } catch (e) {
+      console.error("Failed to load selection:", e);
+    }
+  }, []);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const updateQuantity = (id: string, delta: number) => {
-    setItems((prev) =>
-      prev.map((item) => {
+    setItems((prev) => {
+      const updated = prev.map((item) => {
         if (item.id === id) {
           const newQty = item.quantity + delta;
           return { ...item, quantity: Math.max(1, newQty) };
         }
         return item;
-      })
-    );
+      });
+      localStorage.setItem("menu-selection", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const removeItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+    setItems((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      localStorage.setItem("menu-selection", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleShare = () => {
