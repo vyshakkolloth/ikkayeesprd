@@ -4,13 +4,18 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    Sheet,
+    SheetContent,
+    SheetTitle,
+} from "@/components/ui/sheet";
 
 const NAV_ITEMS = [
     { label: "Home", href: "/" },
     { label: "Menu", href: "/menu" },
-    { label: "My Selection", href: "/selection" },
+    // { label: "My Selection", href: "/selection" },
     { label: "Our Heritage", href: "/heritage" },
     { label: "Contact", href: "/contact" },
 ];
@@ -19,23 +24,9 @@ export default function Header() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
 
-    // Close mobile drawer when route changes
     useEffect(() => {
         setIsOpen(false);
     }, [pathname]);
-
-    // Lock body scroll when mobile drawer is open
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
-        return () => {
-            document.body.style.overflow = "";
-        };
-    }, [isOpen]);
-
     return (
         <header className="sticky top-0 z-50 w-full bg-brand-cream/95 backdrop-blur-md border-b border-brand-gold/10 transition-colors shadow-sm duration-300">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -96,8 +87,15 @@ export default function Header() {
                         </Link>
                     </div>
 
-                    {/* Mobile Actions and Burger Menu Trigger */}
-                    <div className="flex md:hidden items-center gap-3">
+                    {/* Mobile Actions: burger + cart */}
+                    <div className="flex md:hidden items-center gap-2">
+                        <Link
+                            href="/selection"
+                            className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark hover:text-brand-gold hover:border-brand-gold transition-colors bg-brand-cream/50"
+                            aria-label="Cart"
+                        >
+                            <ShoppingCart className="size-5" />
+                        </Link>
                         <button
                             onClick={() => setIsOpen(true)}
                             className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark hover:text-brand-gold hover:border-brand-gold transition-colors bg-brand-cream/50"
@@ -110,63 +108,52 @@ export default function Header() {
                 </div>
             </div>
 
-            {/* Mobile Drawer (Sheet Overlay) */}
-            <div
-                className={cn(
-                    "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden",
-                    isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-                )}
-                onClick={() => setIsOpen(false)}
-            />
+            {/* Mobile Navigation Drawer */}
+            <Sheet open={isOpen} onOpenChange={setIsOpen}>
+                <SheetContent
+                    side="right"
+                    showCloseButton={false}
+                    overlayClassName="bg-black/40 backdrop-blur-sm"
+                    className="flex h-full w-[300px] max-w-[85vw] flex-col gap-0 border-l border-brand-gold/10 !bg-[#FAF6EE] p-6 shadow-2xl sm:max-w-[85vw] md:hidden"
+                >
+                    <div className="flex items-center justify-between border-b border-brand-gold/10 pb-4">
+                        <SheetTitle className="font-playfair text-lg font-bold text-brand-dark">
+                            Navigation
+                        </SheetTitle>
+                        <button
+                            type="button"
+                            onClick={() => setIsOpen(false)}
+                            className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark transition-colors hover:text-brand-gold"
+                            aria-label="Close navigation menu"
+                        >
+                            <X className="size-5" />
+                        </button>
+                    </div>
 
-            <div
-                className={cn(
-                    "fixed top-0 bottom-0 right-0 z-50 w-[300px] max-w-[85vw] bg-brand-cream p-6 shadow-2xl flex flex-col transition-transform duration-300 ease-in-out md:hidden",
-                    isOpen ? "translate-x-0" : "translate-x-full"
-                )}
-            >
-                <div className="flex items-center justify-between border-b border-brand-gold/10 pb-4 mb-6">
-                    <span className="font-playfair text-lg font-bold text-brand-dark">Navigation</span>
-                    <button
-                        onClick={() => setIsOpen(false)}
-                        className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark hover:text-brand-gold transition-colors"
-                        aria-label="Close navigation menu"
-                    >
-                        <X className="size-5" />
-                    </button>
-                </div>
-
-                {/* Vertical Menu Links */}
-                <nav className="flex flex-col gap-4">
-                    {NAV_ITEMS.map((item) => {
-                        const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
-                        return (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={cn(
-                                    "flex items-center h-12 px-4 rounded-lg text-base font-medium transition-all duration-200 border border-transparent",
-                                    isActive
-                                        ? "bg-brand-gold/10 text-brand-gold border-brand-gold/20 font-semibold"
-                                        : "text-brand-dark hover:bg-brand-gold/5 hover:text-brand-gold"
-                                )}
-                            >
-                                {item.label}
-                            </Link>
-                        );
-                    })}
-                </nav>
-
-                {/* Mobile My Selection Button at the bottom */}
-                <div className="mt-auto pt-6 border-t border-brand-gold/10">
-                    <Link
-                        href="/selection"
-                        className="flex h-12 w-full items-center justify-center rounded-full bg-brand-gold text-brand-cream text-base font-medium hover:bg-brand-gold/90 transition-colors shadow-md cursor-pointer select-none"
-                    >
-                        My Selection
-                    </Link>
-                </div>
-            </div>
+                    <nav className="mt-6 flex flex-1 flex-col gap-3 overflow-y-auto bg-[#FAF6EE]">
+                        {NAV_ITEMS.map((item) => {
+                            const isActive =
+                                pathname === item.href ||
+                                (item.href !== "/" && pathname?.startsWith(item.href));
+                            return (
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    onClick={() => setIsOpen(false)}
+                                    className={cn(
+                                        "flex h-12 items-center rounded-lg border px-4 text-base font-medium transition-colors duration-200",
+                                        isActive
+                                            ? "border-brand-gold/40 bg-[#FAF6EE] font-semibold text-brand-gold"
+                                            : "border-brand-gold/25 bg-[#FAF6EE] text-brand-dark hover:border-brand-gold/40 hover:text-brand-gold"
+                                    )}
+                                >
+                                    {item.label}
+                                </Link>
+                            );
+                        })}
+                    </nav>
+                </SheetContent>
+            </Sheet>
         </header>
     );
 }
