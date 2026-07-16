@@ -10,18 +10,18 @@ export default async function proxy(request: NextRequest) {
   if (pathname.startsWith("/dashboard")) {
     const sessionCookie = request.cookies.get("session")?.value;
 
-    // if (!sessionCookie) {
-    //   // No session cookie, redirect to login page
-    //   return NextResponse.redirect(new URL("/login", request.url));
-    // }
+    if (!sessionCookie) {
+      // No session cookie, redirect to login page
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
 
-    // const payload = await decrypt(sessionCookie);
-    // if (!payload) {
-    //   // Invalid/expired session, clear cookie and redirect to login
-    //   const response = NextResponse.redirect(new URL("/login", request.url));
-    //   response.cookies.delete("session");
-    //   return response;
-    // }
+    const payload = await decrypt(sessionCookie);
+    if (!payload) {
+      // Invalid/expired session, clear cookie and redirect to login
+      const response = NextResponse.redirect(new URL("/login", request.url));
+      response.cookies.delete("session");
+      return response;
+    }
 
     // Authorized session
     return NextResponse.next();
