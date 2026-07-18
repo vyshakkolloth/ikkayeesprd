@@ -8,6 +8,7 @@ import { CategorySelector } from "@/features/menu/components/category-selector";
 import { SearchBar } from "@/features/menu/components/search-bar";
 import { ProductGrid } from "@/features/menu/components/product-grid";
 import { ProductDetailModal } from "@/features/menu/components/product-detail-modal";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -120,7 +121,8 @@ export default async function MenuPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="w-full min-h-screen flex flex-col relative max-w-7xl mx-auto px-4 md:px-8 py-4">
+      <ScrollArea className="h-screen w-full">
+      <div className="flex flex-col relative max-w-7xl mx-auto px-4 md:px-8 py-4">
         {/* Header Display */}
         <MenuHeader locale={lang} />
 
@@ -164,14 +166,14 @@ export default async function MenuPage({
                   <h2 className="font-playfair text-xl font-bold text-white leading-tight">
                     {isAr ? featuredProduct.name.ar : featuredProduct.name.en}
                   </h2>
-                </div>
+</div>
 
                 <span className="h-9 px-5 bg-white text-brand-dark hover:bg-brand-cream font-sans text-xs font-semibold rounded-full shadow transition-all duration-200 cursor-pointer flex items-center justify-center">
                   {isAr ? "عرض التفاصيل" : "View Details"}
                 </span>
-              </div>
+</div>
             </Link>
-          </div>
+</div>
         )}
 
         {/* Products Display Grid */}
@@ -196,6 +198,7 @@ export default async function MenuPage({
           />
         )}
       </div>
+    </ScrollArea>
     </main>
   );
 }
