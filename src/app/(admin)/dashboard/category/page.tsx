@@ -1,7 +1,7 @@
 import { categoryRepository } from "@/lib/db/repositories/category.repository";
 import { CategoryList } from "@/features/categories/components/category-list";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR: cache for 60 seconds
 
 export default async function CategoryPage() {
   // Fetch initial category list on the server (SSR) to optimize page load speeds

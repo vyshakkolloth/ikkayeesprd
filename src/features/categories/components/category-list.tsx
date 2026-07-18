@@ -297,9 +297,13 @@ export function CategoryList({
   }, [debouncedSearch, status, page])
 
   // Call fetch categories
-  React.useEffect(() => {
-    fetchCategories()
-  }, [fetchCategories])
+React.useEffect(() => {
+      // Skip fetching on first render when we already have initial data from SSR
+      if (page === 1 && debouncedSearch === "" && status === "all" && categories.length > 0) {
+        return;
+      }
+      fetchCategories()
+    }, [fetchCategories])
 
   // Drag and Drop reordering logic with optimistic update
   const isReorderAllowed = status === "all" && !debouncedSearch

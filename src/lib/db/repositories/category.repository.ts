@@ -11,8 +11,13 @@ class CategoryRepository extends BaseRepository<Category> {
   private async setupIndexes() {
     try {
       const col = await this.getCollection();
+      // Unique index for slug
       await col.createIndex({ slug: 1 }, { unique: true });
+      // Index for priority sorting
       await col.createIndex({ priority: 1 });
+      // Index to support status filter (isActive) and text search on name fields
+      await col.createIndex({ isActive: 1 });
+      await col.createIndex({ "name.en": "text", "name.ar": "text" });
     } catch (err) {
       console.error("Failed to setup category indexes:", err);
     }
@@ -79,10 +84,25 @@ class CategoryRepository extends BaseRepository<Category> {
     const limit = Math.max(1, options.limit || 20);
     const skip = (page - 1) * limit;
 
-    const [items, total] = await Promise.all([
-      col.find(query).sort(sort).skip(skip).limit(limit).toArray(),
-      col.countDocuments(query),
-    ]);
+    // Use aggregation with $facet to fetch paginated items and total count in a single round-trip
+    const aggregation = await col
+      .aggregate([
+        { $match: query },
+        { $sort: sort },
+        {
+          $facet: {
+            items: [{ $skip: skip }, { $limit: limit }],
+            totalCount: [{ $count: "count" }],
+          },
+        },
+        // Keep the raw facet result; we'll extract total in code
+        { $project: { items: 1, totalCount: 1 } },
+      ])
+      .toArray();
+
+    const aggResult = aggregation[0] || { items: [], totalCount: [] };
+    const items = aggResult.items;
+    const total = aggResult.totalCount?.[0]?.count ?? 0;
 
     const validatedItems = items.map((item) => CategorySchema.parse(item));
 
