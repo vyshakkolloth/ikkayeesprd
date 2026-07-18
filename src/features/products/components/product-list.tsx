@@ -197,9 +197,25 @@ export function ProductList({
   }, [debouncedSearch, filterCategory, filterActive, filterVeg, filterChef, filterTopPick, filterSpice, sortBy, sortOrder, page])
 
   // Execute fetch
-  React.useEffect(() => {
-    fetchProducts()
-  }, [fetchProducts])
+React.useEffect(() => {
+      // Skip initial fetch when SSR already supplied data and no filters have changed
+      if (
+        page === 1 &&
+        debouncedSearch === "" &&
+        filterCategory === "all" &&
+        filterActive === "all" &&
+        filterVeg === "all" &&
+        filterChef === "all" &&
+        filterTopPick === "all" &&
+        filterSpice === "all" &&
+        sortBy === "sortOrder" &&
+        sortOrder === "asc" &&
+        products.length > 0
+      ) {
+        return;
+      }
+      fetchProducts()
+    }, [fetchProducts])
 
   // Toggle active status endpoint
   const handleToggleActive = async (id: string, currentStatus: boolean) => {

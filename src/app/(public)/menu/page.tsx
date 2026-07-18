@@ -52,7 +52,7 @@ export default async function MenuPage({
   // Find Category ID if slug is not "all"
   let categoryId: string | undefined;
   if (categorySlug && categorySlug !== "all") {
-    const matched = categories.find((c) => c.slug === categorySlug);
+    const matched = categories.find((c:any) => c.slug === categorySlug);
     if (matched) categoryId = matched._id;
   }
 
@@ -73,7 +73,7 @@ export default async function MenuPage({
           ...rawDoc,
           _id: rawDoc._id.toString(),
           categoryId: rawDoc.categoryId.toString(),
-          categoryName: categories.find((c) => c._id === rawDoc.categoryId.toString())?.name || { en: "Uncategorized", ar: "غير مصنف" },
+          categoryName: categories.find((c:any) => c._id === rawDoc.categoryId.toString())?.name || { en: "Uncategorized", ar: "غير مصنف" },
           pairedProductId: rawDoc.pairedProductId ? rawDoc.pairedProductId.toString() : null,
         };
 

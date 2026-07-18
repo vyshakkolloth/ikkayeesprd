@@ -2,7 +2,7 @@ import { productRepository } from "@/lib/db/repositories/product.repository";
 import { categoryRepository } from "@/lib/db/repositories/category.repository";
 import { ProductList } from "@/features/products/components/product-list";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // ISR: cache page for 60 seconds
 
 export default async function ProductPage() {
   // 1. Fetch initial product data on the server (SSR) to speed up initial render

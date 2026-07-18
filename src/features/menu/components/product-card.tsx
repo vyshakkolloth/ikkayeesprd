@@ -44,9 +44,7 @@ export function ProductCard({
     ? Math.min(...(product.portions?.map((p) => p.price) || [0]))
     : product.price;
 
-  const isUSD = basePrice < 100;
-  const priceINR = isUSD ? Math.round(basePrice * 75) : basePrice;
-  const priceUSD = isUSD ? basePrice : Number((basePrice / 75).toFixed(2));
+  const priceKWD = basePrice; // Assuming stored price is already in Kuwaiti Dinar
 
   // Deterministic rating between 4.5 and 4.9 based on _id
   let idSum = 0;
@@ -120,7 +118,7 @@ export function ProductCard({
 
           <div className="flex items-center justify-between mt-3 pt-1" dir="ltr">
             <span className="font-playfair text-base font-bold text-brand-dark">
-              ₹{priceINR}{product.hasPortions && "+"}
+              KD {priceKWD}{product.hasPortions && "+"}
             </span>
             <AddSelectionButton product={product as any} locale={locale} isMobile={true} />
           </div>
@@ -166,7 +164,7 @@ export function ProductCard({
 
           <div className="flex items-center justify-between pt-1" dir="ltr">
             <span className="font-playfair text-sm font-bold text-brand-dark">
-              ${priceUSD.toFixed(2)}{product.hasPortions && "+"}
+              KD {priceKWD}{product.hasPortions && "+"}
             </span>
             <AddSelectionButton product={product as any} locale={locale} isMobile={false} />
           </div>

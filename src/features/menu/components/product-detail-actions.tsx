@@ -51,20 +51,19 @@ export function ProductDetailActions({
           ? Math.min(...(product.portions?.map((p) => p.price) || [0]))
           : product.price;
 
-        const isUSD = price < 100;
-        const priceINR = isUSD ? Math.round(price * 75) : price;
+const priceKWD = price; // Assuming stored price is KWD
 
-        const itemToAdd = {
-          id: product._id,
-          name: isAr ? product.name.ar : product.name.en,
-          priceINR,
-          description: isAr ? product.description.ar : product.description.en,
-          prepTime: product.prepTime || "15-20 Mins",
-          serves: product.servingSize || "1 Person",
-          image: product.image,
-          quantity: quantity,
-          spiceLevel: needsSpice ? spiceLevel : undefined,
-        };
+  const itemToAdd = {
+    id: product._id,
+    name: isAr ? product.name.ar : product.name.en,
+    priceKWD,
+    description: isAr ? product.description.ar : product.description.en,
+    prepTime: product.prepTime || "15-20 Mins",
+    serves: product.servingSize || "1 Person",
+    image: product.image,
+    quantity: quantity,
+    spiceLevel: needsSpice ? spiceLevel : undefined,
+  };
 
         selection.push(itemToAdd);
         localStorage.setItem("menu-selection", JSON.stringify(selection));

@@ -17,7 +17,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { ImageUpload } from "@/features/categories/components/image-upload"
 import { TagSelector } from "../components/tag-selector"
-import { ChevronDownIcon, CheckIcon, Trash2Icon, PlusIcon, ArrowUpIcon, ArrowDownIcon } from "lucide-react"
+import { ChevronDownIcon, CheckIcon, Trash2Icon, PlusIcon, ArrowUpIcon, ArrowDownIcon, Loader2Icon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const productFormSchema = z.object({
@@ -802,9 +802,22 @@ export function ProductForm({
         </CardContent>
       </Card>
 
-      <div className="flex justify-end gap-2 pt-4 border-t">
+      <div className="flex flex-col items-end gap-2 pt-4 border-t">
+        {isSubmitting && (
+          <div className="flex items-center gap-2 mb-1">
+            <Loader2Icon className="size-4 animate-spin" />
+            <span className="text-sm font-medium">Saving product…</span>
+          </div>
+        )}
         <Button type="submit" disabled={isSubmitting} className="w-full md:w-auto">
-          {submitLabel}
+          {isSubmitting ? (
+            <>
+              <Loader2Icon className="size-4 animate-spin mr-1" />
+              {submitLabel}
+            </>
+          ) : (
+            submitLabel
+          )}
         </Button>
       </div>
     </form>

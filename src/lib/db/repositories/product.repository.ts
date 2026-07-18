@@ -11,9 +11,11 @@ class ProductRepository extends BaseRepository<Product> {
   private async setupIndexes() {
     try {
       const col = await this.getCollection();
-      await col.createIndex({ slug: 1 }, { unique: true });
-      await col.createIndex({ categoryId: 1 });
-      await col.createIndex({ sortOrder: 1 });
+await col.createIndex({ slug: 1 }, { unique: true });
+    await col.createIndex({ categoryId: 1 });
+    await col.createIndex({ sortOrder: 1 });
+    // Text index for name fields and tags to accelerate search queries
+    await col.createIndex({ "name.en": "text", "name.ar": "text", tags: "text" });
     } catch (err) {
       console.error("Failed to setup product indexes:", err);
     }

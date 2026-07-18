@@ -104,7 +104,7 @@ class CategoryRepository extends BaseRepository<Category> {
     const items = aggResult.items;
     const total = aggResult.totalCount?.[0]?.count ?? 0;
 
-    const validatedItems = items.map((item) => CategorySchema.parse(item));
+    const validatedItems = items.map((item:any) => CategorySchema.parse(item));
 
     return {
       items: validatedItems,

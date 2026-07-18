@@ -48,9 +48,7 @@ export function ProductDetailModal({
     ? Math.min(...(product.portions?.map((p) => p.price) || [0]))
     : product.price;
 
-  const isUSD = basePrice < 100;
-  const priceINR = isUSD ? Math.round(basePrice * 75) : basePrice;
-  const priceUSD = isUSD ? basePrice : Number((basePrice / 75).toFixed(2));
+  const priceKWD = basePrice; // Assuming stored price is KWD
 
   // Determine nut warning
   const containsNuts =
@@ -149,10 +147,10 @@ export function ProductDetailModal({
             {/* Price Display */}
             <div className="text-left">
               <span className="block md:hidden font-sans text-2xl font-bold text-[#B88E4C]">
-                ₹{priceINR}
+                KD {priceKWD}
               </span>
               <span className="hidden md:block font-sans text-2xl font-bold text-[#B88E4C]">
-                ${priceUSD.toFixed(2)}
+                KD {priceKWD}
               </span>
             </div>
 
