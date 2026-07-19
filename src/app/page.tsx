@@ -57,7 +57,7 @@ export default async function Home(props: PageProps) {
     : defaultSettings;
 
   // Translation helpers
-  const dict = {
+  const dictMap = {
     en: {
       topDishes: "Top Dishes",
       topDishesSub: "Bestselling favorites loved by our guests",
@@ -108,7 +108,8 @@ export default async function Home(props: PageProps) {
       viewAll: "عرض القائمة كاملة",
       orderNow: "اطلب الآن",
     },
-  }[lang as "en" | "ar"] || dict.en;
+  };
+  const dict = dictMap[lang as "en" | "ar"] || dictMap.en;
 
   // In-memory filters matching the Admin configuration logic
   const topPickProducts = products.filter((p) => p.topPick);
