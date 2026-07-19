@@ -7,7 +7,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-brand-cream text-brand-dark overflow-x-hidden">
       {/* Navigation Header */}
       <Header />
-      
+
       {/* Hero Section */}
       <main className="flex-grow flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 relative bg-gradient-to-b from-brand-cream via-brand-cream to-[#FAF2E5]">
         {/* Soft background glow highlights */}
@@ -19,12 +19,12 @@ export default function Home() {
           <span className="text-brand-gold font-semibold tracking-widest text-[11px] uppercase mb-4 bg-brand-gold/10 px-4 py-1.5 rounded-full border border-brand-gold/20 inline-block">
             Welcome to Ikkaye's Kitchen
           </span>
-          
+
           {/* Main Title with Serif styling for culinary feel */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-playfair font-bold tracking-tight text-brand-dark mb-6 leading-tight max-w-3xl">
             Where Tradition Meets <span className="text-brand-gold italic">Culinary Art</span>
           </h1>
-          
+
           {/* Subtitle */}
           <p className="text-base sm:text-lg md:text-xl text-brand-dark-light max-w-2xl mb-10 leading-relaxed font-sans font-light">
             Indulge in our carefully selected artisanal dishes prepared with organic ingredients, heritage spices, and absolute passion. Customize your dining selection today.
@@ -38,13 +38,8 @@ export default function Home() {
             >
               Explore Menu
             </Link>
-            
-            <Link
-              href="/selection"
-              className="w-full sm:w-auto flex h-12 items-center justify-center rounded-full border border-brand-gold px-8 text-sm font-semibold text-brand-gold hover:bg-brand-gold/5 hover:scale-[1.03] active:scale-[0.97] transition-all duration-200 cursor-pointer select-none"
-            >
-              View My Selection
-            </Link>
+
+
           </div>
         </div>
       </main>

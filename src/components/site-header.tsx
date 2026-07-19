@@ -11,11 +11,11 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 h-4 data-vertical:self-auto"
         />
-        <div className="ml-auto">
+        {/* <div className="ml-auto">
           <button className="flex items-center justify-center size-9 rounded-md hover:bg-accent transition-colors" aria-label="Cart">
             <ShoppingCart className="size-5" />
           </button>
-        </div>
+        </div> */}
       </div>
     </header>
   )

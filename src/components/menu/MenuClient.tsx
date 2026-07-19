@@ -33,6 +33,7 @@ interface Category {
   slug: string;
   priority: number;
   isActive: boolean;
+  image?: string;
 }
 
 interface MenuClientProps {
