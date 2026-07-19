@@ -43,6 +43,14 @@ const data = {
       ),
     },
     {
+      title: "Home Page",
+      url: `/dashboard/home-page`,
+      icon: (
+        <FileIcon
+        />
+      ),
+    },
+    {
       title: "Category Management",
       url: `/dashboard/category`,
       icon: (
@@ -225,8 +233,8 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {/* <NavDocuments items={data.documents} /> */}
-        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        {/* <NavDocuments items={data.documents} />
+        <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={finalUser} />

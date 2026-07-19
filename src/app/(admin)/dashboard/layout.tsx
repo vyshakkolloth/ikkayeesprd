@@ -1,3 +1,4 @@
+// Next.js hot-reload trigger for new route groups
 import { AppSidebar } from "@/components/app-sidebar"
 
 import { SiteHeader } from "@/components/site-header"

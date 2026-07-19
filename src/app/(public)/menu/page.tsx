@@ -76,7 +76,7 @@ export default async function MenuPage() {
       </main>
 
       {/* Premium Footer */}
-      <Footer />
+      {/* <Footer /> */}
     </div>
   );
 }
