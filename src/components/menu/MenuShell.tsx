@@ -790,7 +790,7 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
 
                 {/* Price Display */}
                 <div>
-                  {/* Responsive price: shows INR on mobile layout (hidden on md), KWD on desktop layout (hidden on mobile) */}
+                  {/* Responsive price: shows INR on mobile layout (hidden on md), USD on desktop layout (hidden on mobile) */}
                   <span className="block md:hidden font-sans text-2xl font-bold text-[#B88E4C]">
                     ₹{selectedItem.priceINR}
                   </span>

@@ -621,11 +621,11 @@ React.useEffect(() => {
                           {product.portions.length} Sizes
                           <br />
                           <span className="text-sm font-bold text-foreground">
-                            ${Math.min(...product.portions.map(p => p.price))}+
+                            KWD${Math.min(...product.portions.map(p => p.price))}+
                           </span>
                         </span>
                       ) : (
-                        <span>${product.price.toFixed(2)}</span>
+                        <span>KWD${product.price.toFixed(2)}</span>
                       )}
                     </TableCell>
 

@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // Conversion rate from base price (KWD) to INR
-const CONVERSION_RATE = 200;
+const CONVERSION_RATE = 272;
 
 interface Product {
   id: string;
@@ -79,7 +79,8 @@ const TRANSLATIONS = {
     spiceMedium: "Medium",
     spiceHigh: "High",
     servingDefault: "1-2 People",
-    prepDefault: "15-20 Mins"
+    prepDefault: "15-20 Mins",
+    currency: "KWD"
   },
   ar: {
     title: "استكشف قائمتنا",
@@ -107,7 +108,8 @@ const TRANSLATIONS = {
     spiceMedium: "متوسط",
     spiceHigh: "حار",
     servingDefault: "١-٢ أشخاص",
-    prepDefault: "١٥-٢٠ دقيقة"
+    prepDefault: "١٥-٢٠ دقيقة",
+    currency: "د.ك"
   }
 };
 
@@ -390,7 +392,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                         <span className="font-playfair text-[14px] sm:text-[15px] font-bold text-brand-dark flex flex-col">
                           <span>₹{inrPrice}</span>
                           <span className="text-[9px] text-brand-dark-light font-sans font-normal">
-                            (KWD${displayPrice.toFixed(2)})
+                            ({displayPrice.toFixed(3)} {t.currency})
                           </span>
                         </span>
                         <button
@@ -496,7 +498,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                               <span className="font-playfair text-[12px] sm:text-sm font-bold text-brand-dark flex items-center gap-1.5">
                                 <span>₹{inrPrice}</span>
                                 <span className="text-[9px] text-brand-dark-light font-sans font-normal">
-                                  (KWD${displayPrice.toFixed(2)})
+                                  ({displayPrice.toFixed(3)} {t.currency})
                                 </span>
                               </span>
                               <button
@@ -663,7 +665,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                     ₹{Math.round(selectedItem.price * CONVERSION_RATE)}
                   </span>
                   <span className="font-sans text-xs font-semibold text-brand-dark-light/75">
-                    (KWD${selectedItem.price.toFixed(2)})
+                    ({selectedItem.price.toFixed(3)} {t.currency})
                   </span>
                 </div>
 
