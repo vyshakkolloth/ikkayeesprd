@@ -153,7 +153,7 @@ export function ImageUpload({
               <img
                 src={value}
                 alt="Upload Preview"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover bg-white"
               />
               <button
                 type="button"

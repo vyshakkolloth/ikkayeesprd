@@ -43,6 +43,8 @@ export default async function MenuPage() {
     slug: cat.slug,
     priority: cat.priority,
     isActive: cat.isActive,
+    image: cat.image || "",
+    description: cat.description || null,
   }));
 
   const products = productsResult.items.map((prod: any) => ({

@@ -3,14 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Search, ShoppingCart, Star, Plus, Check, Minus, X, ChevronLeft, ChevronRight, Globe } from "lucide-react";
+import { Search, ShoppingCart, Star, Plus, Check, Minus, X, ChevronLeft, ChevronRight, Globe, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-// Conversion rate from base price (KWD) to INR
-const CONVERSION_RATE = 272;
 
 interface Product {
+  active: boolean;
   id: string;
   name: { en: string; ar: string };
   description: { en: string; ar: string };
@@ -28,6 +27,7 @@ interface Product {
 }
 
 interface Category {
+  description?: { en: string; ar: string };
   id: string;
   name: { en: string; ar: string };
   slug: string;
@@ -146,7 +146,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
       const selection: CartItem[] = JSON.parse(localStorage.getItem("menu-selection") || "[]");
       const existingIdx = selection.findIndex((item) => item.id === product.id);
 
-      const priceINR = Math.round(product.price * CONVERSION_RATE);
+      const priceINR = product.price;
       const nameString = lang === "ar" ? product.name.ar : product.name.en;
       const descString = lang === "ar" ? product.description.ar : product.description.en;
 
@@ -217,32 +217,8 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
 
   return (
     <div className="w-full min-h-screen bg-brand-cream text-brand-dark overflow-x-hidden" dir={isRTL ? "rtl" : "ltr"}>
-      {/* Dynamic Sub-header on Mobile & Desktop to switch languages / view cart info */}
-      <div className="w-full bg-[#F4EFE5] border-b border-brand-gold/10 py-2 px-4 sm:px-6 lg:px-8 flex justify-between items-center select-none z-30 relative">
-        {/* Language Selection */}
-        <button
-          onClick={() => setLang((l) => (l === "en" ? "ar" : "en"))}
-          className="flex items-center gap-1.5 text-xs font-semibold text-brand-dark-light hover:text-brand-dark transition-colors cursor-pointer"
-        >
-          <Globe className="size-3.5" />
-          <span>{lang === "en" ? "العربية (RTL)" : "English (LTR)"}</span>
-        </button>
 
-        {/* Short Selection Counter CTA */}
-        {cartCount > 0 && (
-          <Link
-            href="/selection"
-            className="flex items-center gap-1.5 bg-brand-gold text-brand-cream text-xs font-bold px-3 py-1 rounded-full hover:bg-brand-gold/90 transition-all shadow-sm"
-          >
-            <ShoppingCart className="size-3.5" />
-            <span>
-              {cartCount} {t.itemsSelected}
-            </span>
-          </Link>
-        )}
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 md:py-16">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-28 md:py-16">
         {/* Header Block */}
         <div className="text-center max-w-2xl mx-auto flex flex-col gap-3 mb-8 sm:mb-12">
           <h1 className="font-playfair text-3xl sm:text-4xl lg:text-[42px] font-bold text-brand-dark tracking-tight leading-tight">
@@ -270,20 +246,28 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
           />
         </div>
 
-        {/* Custom Category chips (Horizontally Scrollable) */}
-        <div className="w-full flex justify-center mb-10 select-none">
-          <div className="flex gap-3 overflow-x-auto scrollbar-none py-2 px-1 max-w-full">
+        {/* Desktop View: Custom Category Tabs (Top Inline) */}
+        <div className="hidden md:flex w-full justify-center py-3 px-2 mb-10 select-none">
+          <div className="flex gap-8 max-w-full">
             {/* "All Dishes" Trigger */}
             <button
               onClick={() => setSelectedCategory("all")}
-              className={cn(
-                "px-5 py-2 rounded-full text-xs font-sans font-semibold tracking-wide cursor-pointer transition-all shrink-0 shadow-sm border",
-                selectedCategory === "all"
-                  ? "bg-brand-gold text-brand-cream border-brand-gold"
-                  : "bg-white text-brand-dark border-brand-gold/15 hover:border-brand-gold/30 hover:bg-[#FAF6EE]"
-              )}
+              className="flex flex-col items-center gap-2 group cursor-pointer transition-transform shrink-0"
             >
-              {t.allDishes}
+              <div className={cn(
+                "relative size-[72px] rounded-full flex items-center justify-center border-2 transition-all duration-300 overflow-hidden shadow-sm",
+                selectedCategory === "all"
+                  ? "border-brand-gold bg-[#FAF6EE] scale-105 ring-2 ring-brand-gold/15"
+                  : "border-transparent bg-white hover:border-brand-gold/40"
+              )}>
+                <UtensilsCrossed className={cn("size-7 transition-colors", selectedCategory === "all" ? "text-brand-gold" : "text-brand-dark-light/60")} />
+              </div>
+              <span className={cn(
+                "text-xs font-semibold tracking-wide transition-colors uppercase font-sans mt-0.5",
+                selectedCategory === "all" ? "text-brand-gold font-bold" : "text-brand-dark-light/85 group-hover:text-brand-dark"
+              )}>
+                {t.allDishes}
+              </span>
             </button>
 
             {categories.map((cat) => {
@@ -293,18 +277,99 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                 <button
                   key={cat.id}
                   onClick={() => setSelectedCategory(cat.id)}
-                  className={cn(
-                    "px-5 py-2 rounded-full text-xs font-sans font-semibold tracking-wide cursor-pointer transition-all shrink-0 shadow-sm border",
-                    isActive
-                      ? "bg-brand-gold text-brand-cream border-brand-gold"
-                      : "bg-white text-brand-dark border-brand-gold/15 hover:border-brand-gold/30 hover:bg-[#FAF6EE]"
-                  )}
+                  className="flex flex-col items-center gap-2 group cursor-pointer transition-transform shrink-0"
                 >
-                  {catName}
+                  <div className={cn(
+                    "relative size-[72px] rounded-full flex items-center justify-center border-2 transition-all duration-300 overflow-hidden shadow-sm bg-white",
+                    isActive
+                      ? "border-brand-gold scale-105 ring-2 ring-brand-gold/15"
+                      : "border-transparent hover:border-brand-gold/40"
+                  )}>
+                    {cat.image ? (
+                      <Image
+                        src={cat.image}
+                        alt={catName}
+                        fill
+                        sizes="80px"
+                        className="object-cover p-0.5 rounded-full bg-white"
+                        unoptimized={cat.image.startsWith("data:")}
+                      />
+                    ) : (
+                      <UtensilsCrossed className={cn("size-7 transition-colors", isActive ? "text-brand-gold" : "text-brand-dark-light/60")} />
+                    )}
+                  </div>
+                  <span className={cn(
+                    "text-xs font-semibold tracking-wide transition-colors uppercase font-sans mt-0.5",
+                    isActive ? "text-brand-gold font-bold" : "text-brand-dark-light/85 group-hover:text-brand-dark"
+                  )}>
+                    {catName}
+                  </span>
                 </button>
               );
             })}
           </div>
+        </div>
+
+        {/* Mobile View: Sticky Bottom Category Bar */}
+        <div className="fixed bottom-0 start-0 end-0 z-40 bg-[#FAF6EE]/95 backdrop-blur-md border-t border-brand-gold/10 px-4 py-2.5 flex md:hidden items-center gap-5 overflow-x-auto scrollbar-none shadow-[0_-4px_20px_rgba(0,0,0,0.08)] select-none">
+          {/* "All Dishes" Trigger */}
+          <button
+            onClick={() => setSelectedCategory("all")}
+            className="flex flex-col items-center gap-1 group cursor-pointer transition-transform shrink-0"
+          >
+            <div className={cn(
+              "relative size-12 rounded-full flex items-center justify-center border transition-all duration-300 overflow-hidden shadow-sm",
+              selectedCategory === "all"
+                ? "border-brand-gold bg-[#FAF6EE] scale-105 ring-1 ring-brand-gold/15"
+                : "border-transparent bg-white"
+            )}>
+              <UtensilsCrossed className={cn("size-5 transition-colors", selectedCategory === "all" ? "text-brand-gold" : "text-brand-dark-light/60")} />
+            </div>
+            <span className={cn(
+              "text-[9px] font-semibold tracking-wide transition-colors uppercase font-sans mt-0.5",
+              selectedCategory === "all" ? "text-brand-gold font-bold" : "text-brand-dark-light/85"
+            )}>
+              {t.allDishes}
+            </span>
+          </button>
+
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat.id;
+            const catName = lang === "ar" ? cat.name.ar : cat.name.en;
+            return (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
+                className="flex flex-col items-center gap-1 group cursor-pointer transition-transform shrink-0"
+              >
+                <div className={cn(
+                  "relative size-12 rounded-full flex items-center justify-center border transition-all duration-300 overflow-hidden shadow-sm bg-white",
+                  isActive
+                    ? "border-brand-gold scale-105 ring-1 ring-brand-gold/15"
+                    : "border-transparent"
+                )}>
+                  {cat.image ? (
+                    <Image
+                      src={cat.image}
+                      alt={catName}
+                      fill
+                      sizes="48px"
+                      className="object-cover p-0.5 rounded-full bg-white"
+                      unoptimized={cat.image.startsWith("data:")}
+                    />
+                  ) : (
+                    <UtensilsCrossed className={cn("size-5 transition-colors", isActive ? "text-brand-gold" : "text-brand-dark-light/60")} />
+                  )}
+                </div>
+                <span className={cn(
+                  "text-[9px] font-semibold tracking-wide transition-colors uppercase font-sans mt-0.5",
+                  isActive ? "text-brand-gold font-bold" : "text-brand-dark-light/85"
+                )}>
+                  {catName}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Top Picks Section - Custom Horizontal Carousel Layout */}
@@ -342,7 +407,6 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                 const prodName = lang === "ar" ? pick.name.ar : pick.name.en;
                 const prodDesc = lang === "ar" ? pick.description.ar : pick.description.en;
                 const displayPrice = pick.price;
-                const inrPrice = Math.round(displayPrice * CONVERSION_RATE);
 
                 return (
                   <div
@@ -355,7 +419,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                     className="snap-start shrink-0 w-[270px] sm:w-[310px] bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-col group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 cursor-pointer"
                   >
                     {/* Square-ish top image */}
-                    <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-[#ECE8E0]">
+                    <div className="relative w-full h-48 sm:h-52 overflow-hidden bg-white">
                       {pick.image && (
                         <Image
                           src={pick.image}
@@ -363,7 +427,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                           fill
                           sizes="(max-w-md) 80vw, 300px"
                           unoptimized={pick.image.startsWith("data:")}
-                          className="object-cover transition-transform duration-700 group-hover:scale-103"
+                          className="object-cover bg-white transition-transform duration-700 group-hover:scale-103"
                         />
                       )}
                       {/* Rating Overlay */}
@@ -389,11 +453,8 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                       </div>
 
                       <div className="flex items-center justify-between pt-2 border-t border-[#FAF6EE]">
-                        <span className="font-playfair text-[14px] sm:text-[15px] font-bold text-brand-dark flex flex-col">
-                          <span>₹{inrPrice}</span>
-                          <span className="text-[9px] text-brand-dark-light font-sans font-normal">
-                            ({displayPrice.toFixed(3)} {t.currency})
-                          </span>
+                        <span className="font-playfair text-[15px] sm:text-base font-bold text-[#B88E4C]">
+                          {displayPrice.toFixed(3)} {t.currency}
                         </span>
                         <button
                           onClick={(e) => {
@@ -448,7 +509,6 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                       const prodName = lang === "ar" ? item.name.ar : item.name.en;
                       const prodDesc = lang === "ar" ? item.description.ar : item.description.en;
                       const displayPrice = item.price;
-                      const inrPrice = Math.round(displayPrice * CONVERSION_RATE);
 
                       return (
                         <div
@@ -461,7 +521,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                           className="bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-row items-stretch group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 min-h-[110px] sm:min-h-[125px] cursor-pointer"
                         >
                           {/* Left: Square Image */}
-                          <div className="relative w-24 sm:w-32 shrink-0 overflow-hidden bg-[#ECE8E0]">
+                          <div className="relative w-24 sm:w-32 shrink-0 overflow-hidden bg-white">
                             {item.image && (
                               <Image
                                 src={item.image}
@@ -469,7 +529,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                                 fill
                                 sizes="128px"
                                 unoptimized={item.image.startsWith("data:")}
-                                className="object-cover transition-transform duration-700 group-hover:scale-103"
+                                className="object-cover bg-white transition-transform duration-700 group-hover:scale-103"
                               />
                             )}
                           </div>
@@ -495,11 +555,8 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                             </div>
 
                             <div className="flex items-center justify-between pt-1 border-t border-[#FAF6EE]">
-                              <span className="font-playfair text-[12px] sm:text-sm font-bold text-brand-dark flex items-center gap-1.5">
-                                <span>₹{inrPrice}</span>
-                                <span className="text-[9px] text-brand-dark-light font-sans font-normal">
-                                  ({displayPrice.toFixed(3)} {t.currency})
-                                </span>
+                              <span className="font-playfair text-[13px] sm:text-sm font-bold text-[#B88E4C]">
+                                {displayPrice.toFixed(3)} {t.currency}
                               </span>
                               <button
                                 onClick={(e) => {
@@ -559,7 +616,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
             {/* Scrollable Container */}
             <div className="overflow-y-auto w-full scrollbar-thin">
               {/* Header Image */}
-              <div className="relative h-[200px] sm:h-[220px] w-full shrink-0 bg-[#ECE8E0]">
+              <div className="relative h-[200px] sm:h-[220px] w-full shrink-0 bg-white">
                 {selectedItem.image && (
                   <Image
                     src={selectedItem.image}
@@ -567,7 +624,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                     fill
                     sizes="440px"
                     unoptimized={selectedItem.image.startsWith("data:")}
-                    className="object-cover"
+                    className="object-cover bg-white"
                     priority
                   />
                 )}
@@ -662,10 +719,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                 {/* Price Display */}
                 <div className="flex items-baseline gap-2">
                   <span className="font-sans text-xl sm:text-2xl font-bold text-[#B88E4C]">
-                    ₹{Math.round(selectedItem.price * CONVERSION_RATE)}
-                  </span>
-                  <span className="font-sans text-xs font-semibold text-brand-dark-light/75">
-                    ({selectedItem.price.toFixed(3)} {t.currency})
+                    {selectedItem.price.toFixed(3)} {t.currency}
                   </span>
                 </div>
 

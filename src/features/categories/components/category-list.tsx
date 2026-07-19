@@ -167,7 +167,7 @@ function SortableCategoryRow({
           <img
             src={category.image}
             alt={category.alt.en}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover bg-white"
           />
         </div>
       </TableCell>

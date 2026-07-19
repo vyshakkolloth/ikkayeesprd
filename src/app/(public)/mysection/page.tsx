@@ -20,7 +20,7 @@ const INITIAL_DISHES: SelectedDish[] = [
   {
     id: "mandi-4",
     name: "Chicken Royal Mandi",
-    priceINR: 599,
+    priceINR: 1.800,
     description: "Premium Chicken Kuzhi Mandi served in a traditional Arabian platter, slow-cooked to perfection.",
     prepTime: "25-30 Mins",
     serves: "Serves: 2-3 People",
@@ -30,7 +30,7 @@ const INITIAL_DISHES: SelectedDish[] = [
   {
     id: "grill-1",
     name: "Mixed Grill Platter",
-    priceINR: 699,
+    priceINR: 3.250,
     description: "Succulent skewers of meat and chicken, grilled tomatoes and onions, served with pita bread and garlic sauce.",
     prepTime: "20-25 Mins",
     serves: "Serves: 1-2 People",
@@ -40,7 +40,7 @@ const INITIAL_DISHES: SelectedDish[] = [
   {
     id: "shawarma-1",
     name: "Arabian Shawarma",
-    priceINR: 249,
+    priceINR: 0.750,
     description: "Authentic Malabar style preparation with rich spices and perfectly roasted meats.",
     prepTime: "10-15 Mins",
     serves: "Serves: 1 Person",
@@ -138,7 +138,7 @@ export default function MySectionPage() {
                           alt={item.name}
                           fill
                           sizes="(max-w-md) 100vw, 130px"
-                          className="object-cover"
+                          className="object-cover bg-white"
                         />
                       </div>
 
@@ -150,7 +150,7 @@ export default function MySectionPage() {
                               {item.name}
                             </h3>
                             <span className="font-playfair text-lg font-bold text-[#8C6D3E] whitespace-nowrap">
-                              ₹{item.priceINR}
+                              {item.priceINR.toFixed(3)} KWD
                             </span>
                           </div>
                           <p className="text-xs sm:text-[13px] text-brand-dark-light/80 leading-relaxed font-sans font-light mt-1.5 max-w-xl">
@@ -249,7 +249,7 @@ export default function MySectionPage() {
                         <span>{item.name}</span>
                       </div>
                       <span className="font-sans text-xs text-brand-dark-light font-light whitespace-nowrap">
-                        ₹{item.priceINR * item.quantity}
+                        {(item.priceINR * item.quantity).toFixed(3)} KWD
                       </span>
                     </div>
                   ))}

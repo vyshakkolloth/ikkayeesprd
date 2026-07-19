@@ -584,7 +584,7 @@ React.useEffect(() => {
                         <img
                           src={product.image}
                           alt={product.imageAlt.en}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover bg-white"
                         />
                       </div>
                     </TableCell>
