@@ -37,19 +37,25 @@ class SettingsRepository extends BaseRepository<HomeSettings> {
     imageUrl: string;
     ctaText?: { en: string; ar: string };
   }): Promise<boolean> {
-    const col = await this.getCollection();
-    const result = await col.updateOne(
-      { key: "home_settings" } as any,
-      {
-        $set: {
-          key: "home_settings",
-          hero: heroData,
-          updatedAt: new Date(),
-        },
-      } as any,
-      { upsert: true }
-    );
-    return result.upsertedCount > 0 || result.modifiedCount > 0 || result.matchedCount > 0;
+    try {
+      const result = await this.runWithRetry((col) =>
+        col.updateOne(
+          { key: "home_settings" } as any,
+          {
+            $set: {
+              key: "home_settings",
+              hero: heroData,
+              updatedAt: new Date(),
+            },
+          } as any,
+          { upsert: true }
+        )
+      );
+      return result.upsertedCount > 0 || result.modifiedCount > 0 || result.matchedCount > 0;
+    } catch (err) {
+      console.error("Failed to execute updateHomeSettings in SettingsRepository after retries.", err);
+      return false;
+    }
   }
 }
 

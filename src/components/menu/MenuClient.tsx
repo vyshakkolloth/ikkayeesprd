@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Search, ShoppingCart, Star, Plus, Check, Minus, X, ChevronLeft, ChevronRight, Globe, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useCart } from "@/store/cartStore";
 
 
 interface Product {
@@ -24,6 +25,11 @@ interface Product {
   servingSize?: string;
   prepTime?: string;
   image: string;
+  hasPortions?: boolean;
+  portions?: Array<{
+    name: { en: string; ar: string };
+    price: number;
+  }>;
 }
 
 interface Category {
@@ -81,7 +87,12 @@ const TRANSLATIONS = {
     spiceHigh: "High",
     servingDefault: "1-2 People",
     prepDefault: "15-20 Mins",
-    currency: "KWD"
+    currency: "KWD",
+    portions: "Portions",
+    selectPortion: "Select Portion",
+    customize: "Customize",
+    add: "ADD",
+    done: "Done"
   },
   ar: {
     title: "استكشف قائمتنا",
@@ -110,7 +121,12 @@ const TRANSLATIONS = {
     spiceHigh: "حار",
     servingDefault: "١-٢ أشخاص",
     prepDefault: "١٥-٢٠ دقيقة",
-    currency: "د.ك"
+    currency: "د.ك",
+    portions: "الأحجام",
+    selectPortion: "اختر الحجم",
+    customize: "تخصيص",
+    add: "إضافة",
+    done: "تم"
   }
 };
 
@@ -118,7 +134,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
   const [lang, setLang] = useState<"en" | "ar">("en");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [cartCount, setCartCount] = useState(0);
+
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
 
   // Detail Modal state
@@ -131,55 +147,177 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
   // Carousel ref for Top Picks
   const topPicksContainerRef = useRef<HTMLDivElement>(null);
 
-  // Sync cart count on mount and from localStorage
-  useEffect(() => {
-    try {
-      const selection: CartItem[] = JSON.parse(localStorage.getItem("menu-selection") || "[]");
-      const totalCount = selection.reduce((sum, item) => sum + item.quantity, 0);
-      setCartCount(totalCount);
-    } catch (e) {
-      console.error("Failed to load selection:", e);
-    }
-  }, []);
+  // Cart count derived from global store
+  const { items: cartItems, addItem, updateQuantity, removeItem } = useCart();
+  const cartCount = cartItems.reduce((sum, i) => sum + i.quantity, 0);
 
   const handleAddItem = (product: Product, qty: number = 1) => {
     try {
-      const selection: CartItem[] = JSON.parse(localStorage.getItem("menu-selection") || "[]");
-      const existingIdx = selection.findIndex((item) => item.id === product.id);
-
-      const priceINR = product.price;
       const nameString = lang === "ar" ? product.name.ar : product.name.en;
       const descString = lang === "ar" ? product.description.ar : product.description.en;
 
-      if (existingIdx > -1) {
-        selection[existingIdx].quantity += qty;
-      } else {
-        selection.push({
-          id: product.id,
-          name: nameString,
-          priceINR,
-          description: descString,
-          prepTime: product.prepTime || t.prepDefault,
-          serves: product.servingSize || t.servingDefault,
-          image: product.image,
-          quantity: qty,
-        });
-      }
+      const cartProduct = {
+        id: product.id,
+        name: nameString,
+        priceINR: product.price,
+        description: descString,
+        prepTime: product.prepTime || t.prepDefault,
+        serves: product.servingSize || t.servingDefault,
+        image: product.image,
+      };
 
-      localStorage.setItem("menu-selection", JSON.stringify(selection));
-      const totalCount = selection.reduce((sum, item) => sum + item.quantity, 0);
-      setCartCount(totalCount);
-
-      // Toast notification
+      addItem(cartProduct, qty);
       toast.success(`${nameString} - ${t.addedToCart}`);
 
-      // Temporary trigger "Added ✓" visual state
       setAddedItems((prev) => ({ ...prev, [product.id]: true }));
       setTimeout(() => {
         setAddedItems((prev) => ({ ...prev, [product.id]: false }));
       }, 1500);
     } catch (e) {
-      console.error("Failed to save selection:", e);
+      console.error("Failed to add item:", e);
+    }
+  };
+
+  const getProductCartQty = (productId: string) => {
+    return cartItems
+      .filter((item) => item.id === productId || item.productId === productId)
+      .reduce((sum, item) => sum + item.quantity, 0);
+  };
+
+  const getSimpleProductCartItem = (productId: string) => {
+    return cartItems.find((item) => item.id === productId);
+  };
+
+  const updatePortionQty = (
+    product: Product,
+    portion: { name: { en: string; ar: string }; price: number },
+    delta: number
+  ) => {
+    try {
+      const cartItemId = `${product.id}-${portion.name.en}`;
+      const existing = cartItems.find((i) => i.id === cartItemId);
+      const portionNameString = lang === "ar" ? portion.name.ar : portion.name.en;
+      const productNameString = lang === "ar" ? product.name.ar : product.name.en;
+
+      if (existing) {
+        const newQty = existing.quantity + delta;
+        if (newQty <= 0) {
+          removeItem(cartItemId);
+          toast.success(`${productNameString} (${portionNameString}) removed`);
+        } else {
+          updateQuantity(cartItemId, delta);
+        }
+      } else if (delta > 0) {
+        const descString = lang === "ar" ? product.description.ar : product.description.en;
+        addItem(
+          {
+            id: cartItemId,
+            productId: product.id,
+            portionName: portion.name,
+            name: `${productNameString} (${portionNameString})`,
+            priceINR: portion.price,
+            description: descString,
+            prepTime: product.prepTime || t.prepDefault,
+            serves: product.servingSize || t.servingDefault,
+            image: product.image,
+          },
+          delta
+        );
+        toast.success(`${productNameString} (${portionNameString}) - ${t.addedToCart}`);
+      }
+    } catch (e) {
+      console.error("Failed to update portion quantity:", e);
+    }
+  };
+
+  const renderProductButton = (product: Product) => {
+    const isPortioned = product.hasPortions && product.portions && product.portions.length > 0;
+    const prodName = lang === "ar" ? product.name.ar : product.name.en;
+
+    if (isPortioned) {
+      const totalQty = getProductCartQty(product.id);
+      if (totalQty > 0) {
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedItem(product);
+              setSpiceLevel(product.spiceLevel || "medium");
+              setQuantity(1);
+            }}
+            className="h-8 px-2.5 rounded-full bg-[#FAF6EE] text-[#B88E4C] hover:bg-brand-gold/5 border border-brand-gold/20 flex items-center gap-1.5 text-[10px] font-bold tracking-wide transition-all active:scale-95 cursor-pointer shadow-2xs"
+          >
+            <span>{totalQty} {t.added}</span>
+            <span className="text-[9px] text-[#B88E4C]/60 font-medium">({t.customize})</span>
+          </button>
+        );
+      } else {
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedItem(product);
+              setSpiceLevel(product.spiceLevel || "medium");
+              setQuantity(1);
+            }}
+            className="h-8 px-3 rounded-full border border-brand-gold/35 text-brand-gold hover:bg-brand-gold/10 hover:border-brand-gold flex items-center justify-center text-2xs font-semibold tracking-wide transition-all active:scale-95 cursor-pointer shadow-sm bg-white"
+            aria-label={`Select portions for ${prodName}`}
+          >
+            {t.add}
+          </button>
+        );
+      }
+    } else {
+      const cartItem = getSimpleProductCartItem(product.id);
+      const qty = cartItem ? cartItem.quantity : 0;
+
+      if (qty > 0) {
+        return (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-2 bg-[#F4EFE5] px-2 py-0.5 rounded-full border border-brand-gold/5 h-8 select-none"
+          >
+            <button
+              onClick={() => {
+                if (qty > 1) {
+                  updateQuantity(product.id, -1);
+                } else {
+                  removeItem(product.id);
+                }
+              }}
+              className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
+              aria-label="Decrease quantity"
+            >
+              <Minus className="size-3 stroke-[2.5]" />
+            </button>
+            <span className="font-sans text-xs font-bold w-4 text-center text-brand-dark">
+              {qty}
+            </span>
+            <button
+              onClick={() => {
+                updateQuantity(product.id, 1);
+              }}
+              className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
+              aria-label="Increase quantity"
+            >
+              <Plus className="size-3 stroke-[2.5]" />
+            </button>
+          </div>
+        );
+      } else {
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAddItem(product);
+            }}
+            className="h-8 px-4 rounded-full bg-brand-gold text-white hover:bg-brand-gold/90 flex items-center justify-center text-2xs font-semibold tracking-wide transition-all active:scale-95 cursor-pointer shadow-sm border border-transparent"
+            aria-label={`Add ${prodName}`}
+          >
+            {t.add}
+          </button>
+        );
+      }
     }
   };
 
@@ -457,19 +595,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                         <span className="font-playfair text-[15px] sm:text-base font-bold text-[#B88E4C]">
                           {displayPrice.toFixed(3)} {t.currency}
                         </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddItem(pick);
-                          }}
-                          className={cn(
-                            "size-8 rounded-full bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white flex items-center justify-center transition-all duration-250 active:scale-90 cursor-pointer shadow-sm border border-transparent",
-                            addedItems[pick.id] && "bg-brand-gold text-white"
-                          )}
-                          aria-label={`Add ${prodName}`}
-                        >
-                          {addedItems[pick.id] ? "✓" : <Plus className="size-4" />}
-                        </button>
+                        {renderProductButton(pick)}
                       </div>
                     </div>
                   </div>
@@ -559,19 +685,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                               <span className="font-playfair text-[13px] sm:text-sm font-bold text-[#B88E4C]">
                                 {displayPrice.toFixed(3)} {t.currency}
                               </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleAddItem(item);
-                                }}
-                                className={cn(
-                                  "size-7 rounded-full bg-brand-gold/10 text-brand-gold hover:bg-brand-gold hover:text-white flex items-center justify-center transition-all duration-250 active:scale-90 cursor-pointer shadow-sm border border-transparent",
-                                  addedItems[item.id] && "bg-brand-gold text-white"
-                                )}
-                                aria-label={`Add ${prodName}`}
-                              >
-                                {addedItems[item.id] ? "✓" : <Plus className="size-3.5" />}
-                              </button>
+                              {renderProductButton(item)}
                             </div>
                           </div>
                         </div>
@@ -719,9 +833,18 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
 
                 {/* Price Display */}
                 <div className="flex items-baseline gap-2">
-                  <span className="font-sans text-xl sm:text-2xl font-bold text-[#B88E4C]">
-                    {selectedItem.price.toFixed(3)} {t.currency}
-                  </span>
+                  {selectedItem.hasPortions && selectedItem.portions && selectedItem.portions.length > 0 ? (
+                    <span className="font-sans text-xs sm:text-sm font-semibold text-brand-dark-light/70 uppercase tracking-wider">
+                      {isRTL ? "تبدأ من:" : "Starting from:"}{" "}
+                      <span className="font-sans text-lg sm:text-xl font-bold text-[#B88E4C] ml-1">
+                        {Math.min(...selectedItem.portions.map(p => p.price)).toFixed(3)} {t.currency}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="font-sans text-xl sm:text-2xl font-bold text-[#B88E4C]">
+                      {selectedItem.price.toFixed(3)} {t.currency}
+                    </span>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -748,48 +871,122 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                   ))}
                 </div>
 
-                {/* Quantity Selector Section */}
-                <div className="flex items-center justify-between mt-5 pt-3.5 border-t border-brand-gold/10">
-                  <span className="font-sans text-xs sm:text-sm font-semibold text-brand-dark">
-                    {t.quantity}
-                  </span>
+                {/* Portions Selection Section vs Simple Stepper Section */}
+                {selectedItem.hasPortions && selectedItem.portions && selectedItem.portions.length > 0 ? (
+                  <>
+                    <div className="mt-5 pt-4 border-t border-brand-gold/10">
+                      <span className="block font-sans text-[9px] sm:text-[10px] font-bold tracking-widest text-[#8A6D3B] uppercase mb-3">
+                        {t.portions}
+                      </span>
+                      <div className="flex flex-col gap-3">
+                        {selectedItem.portions.map((portion) => {
+                          const cartItemId = `${selectedItem.id}-${portion.name.en}`;
+                          const portionItem = cartItems.find((i) => i.id === cartItemId);
+                          const pQty = portionItem ? portionItem.quantity : 0;
+                          const portionNameStr = lang === "ar" ? portion.name.ar : portion.name.en;
 
-                  {/* Stepper */}
-                  <div className="flex items-center gap-3.5 bg-[#F4EFE5] px-3.5 py-1.5 rounded-full border border-brand-gold/5">
-                    <button
-                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                      disabled={quantity <= 1}
-                      className={cn(
-                        "size-5 rounded-full flex items-center justify-center text-brand-dark transition-colors cursor-pointer",
-                        quantity <= 1 ? "opacity-35 cursor-not-allowed" : "hover:bg-brand-gold/10"
-                      )}
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="size-3.5 stroke-[2.5]" />
-                    </button>
-                    <span className="font-sans text-xs sm:text-sm font-bold w-4 text-center text-brand-dark">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity((q) => q + 1)}
-                      className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="size-3.5 stroke-[2.5]" />
-                    </button>
-                  </div>
-                </div>
+                          return (
+                            <div
+                              key={portion.name.en}
+                              className="flex items-center justify-between p-3 rounded-2xl bg-white border border-brand-gold/10 hover:border-brand-gold/25 transition-all shadow-2xs"
+                            >
+                              <div className="flex flex-col">
+                                <span className="font-sans text-xs sm:text-sm font-semibold text-brand-dark">
+                                  {portionNameStr}
+                                </span>
+                                <span className="font-sans text-xs text-[#B88E4C] font-semibold mt-0.5">
+                                  {portion.price.toFixed(3)} {t.currency}
+                                </span>
+                              </div>
 
-                {/* Add to Selection Button */}
-                <button
-                  onClick={() => {
-                    handleAddItem(selectedItem, quantity);
-                    setSelectedItem(null);
-                  }}
-                  className="w-full h-11 bg-brand-dark hover:bg-brand-dark-light text-white font-sans text-xs sm:text-sm font-semibold rounded-full shadow-md transition-all duration-200 mt-5 active:scale-[0.98] cursor-pointer"
-                >
-                  {t.addToSelection}
-                </button>
+                              {pQty > 0 ? (
+                                <div className="flex items-center gap-3 bg-[#F4EFE5] px-3 py-1.5 rounded-full border border-brand-gold/5">
+                                  <button
+                                    onClick={() => updatePortionQty(selectedItem, portion, -1)}
+                                    className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
+                                    aria-label={`Decrease quantity of ${portionNameStr}`}
+                                  >
+                                    <Minus className="size-3.5 stroke-[2.5]" />
+                                  </button>
+                                  <span className="font-sans text-xs sm:text-sm font-bold w-4 text-center text-brand-dark">
+                                    {pQty}
+                                  </span>
+                                  <button
+                                    onClick={() => updatePortionQty(selectedItem, portion, 1)}
+                                    className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
+                                    aria-label={`Increase quantity of ${portionNameStr}`}
+                                  >
+                                    <Plus className="size-3.5 stroke-[2.5]" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => updatePortionQty(selectedItem, portion, 1)}
+                                  className="h-8 px-3 rounded-full border border-brand-gold/30 text-brand-gold hover:bg-brand-gold hover:text-white flex items-center justify-center text-2xs font-bold transition-all duration-200 active:scale-95 cursor-pointer bg-white"
+                                >
+                                  {t.add}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Done Button */}
+                    <button
+                      onClick={() => setSelectedItem(null)}
+                      className="w-full h-11 bg-brand-dark hover:bg-brand-dark-light text-white font-sans text-xs sm:text-sm font-semibold rounded-full shadow-md transition-all duration-200 mt-6 active:scale-[0.98] cursor-pointer"
+                    >
+                      {t.done}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Quantity Selector Section */}
+                    <div className="flex items-center justify-between mt-5 pt-3.5 border-t border-brand-gold/10">
+                      <span className="font-sans text-xs sm:text-sm font-semibold text-brand-dark">
+                        {t.quantity}
+                      </span>
+
+                      {/* Stepper */}
+                      <div className="flex items-center gap-3.5 bg-[#F4EFE5] px-3.5 py-1.5 rounded-full border border-brand-gold/5">
+                        <button
+                          onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                          disabled={quantity <= 1}
+                          className={cn(
+                            "size-5 rounded-full flex items-center justify-center text-brand-dark transition-colors cursor-pointer",
+                            quantity <= 1 ? "opacity-35 cursor-not-allowed" : "hover:bg-brand-gold/10"
+                          )}
+                          aria-label="Decrease quantity"
+                        >
+                          <Minus className="size-3.5 stroke-[2.5]" />
+                        </button>
+                        <span className="font-sans text-xs sm:text-sm font-bold w-4 text-center text-brand-dark">
+                          {quantity}
+                        </span>
+                        <button
+                          onClick={() => setQuantity((q) => q + 1)}
+                          className="size-5 rounded-full flex items-center justify-center text-brand-dark hover:bg-brand-gold/10 transition-colors cursor-pointer"
+                          aria-label="Increase quantity"
+                        >
+                          <Plus className="size-3.5 stroke-[2.5]" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Add to Selection Button */}
+                    <button
+                      onClick={() => {
+                        handleAddItem(selectedItem, quantity);
+                        setSelectedItem(null);
+                      }}
+                      className="w-full h-11 bg-brand-dark hover:bg-brand-dark-light text-white font-sans text-xs sm:text-sm font-semibold rounded-full shadow-md transition-all duration-200 mt-5 active:scale-[0.98] cursor-pointer"
+                    >
+                      {t.addToSelection}
+                    </button>
+                  </>
+                )}
 
                 {/* Continue Browsing */}
                 <button

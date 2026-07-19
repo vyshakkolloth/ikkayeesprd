@@ -20,50 +20,62 @@ export const metadata: Metadata = {
 };
 
 export default async function MenuPage() {
-  // Fetch active categories (up to 100 items)
-  const categoriesResult = await categoryRepository.findWithFilters({
-    status: "active",
-    limit: 100,
-    sortBy: "priority",
-    sortOrder: "asc"
-  });
+  let categories: any[] = [];
+  let products: any[] = [];
 
-  // Fetch active products (up to 500 items)
-  const productsResult = await productRepository.findWithFilters({
-    active: true,
-    limit: 500,
-    sortBy: "sortOrder",
-    sortOrder: "asc"
-  });
+  try {
+    // Fetch active categories (up to 100 items)
+    const categoriesResult = await categoryRepository.findWithFilters({
+      status: "active",
+      limit: 100,
+      sortBy: "priority",
+      sortOrder: "asc"
+    });
 
-  // Serialize MongoDB ObjectIds to clean strings for client compatibility
-  const categories = categoriesResult.items.map((cat: any) => ({
-    id: cat._id.toString(),
-    name: cat.name,
-    slug: cat.slug,
-    priority: cat.priority,
-    isActive: cat.isActive,
-    image: cat.image || "",
-    description: cat.description || null,
-  }));
+    // Fetch active products (up to 500 items)
+    const productsResult = await productRepository.findWithFilters({
+      active: true,
+      limit: 500,
+      sortBy: "sortOrder",
+      sortOrder: "asc"
+    });
 
-  const products = productsResult.items.map((prod: any) => ({
-    id: prod._id.toString(),
-    name: prod.name,
-    description: prod.description,
-    slug: prod.slug,
-    categoryId: prod.categoryId.toString(),
-    price: prod.price,
-    chefRecommended: prod.chefRecommended,
-    topPick: prod.topPick,
-    spiceLevel: prod.spiceLevel,
-    isVeg: prod.isVeg,
-    tags: prod.tags,
-    active: prod.active,
-    image: prod.image || "",
-    servingSize: prod.servingSize || "",
-    prepTime: prod.prepTime || "",
-  }));
+    // Serialize MongoDB ObjectIds to clean strings for client compatibility
+    categories = categoriesResult.items.map((cat: any) => ({
+      id: cat._id.toString(),
+      name: cat.name,
+      slug: cat.slug,
+      priority: cat.priority,
+      isActive: cat.isActive,
+      image: cat.image || "",
+      description: cat.description || null,
+    }));
+
+    products = productsResult.items.map((prod: any) => ({
+      id: prod._id.toString(),
+      name: prod.name,
+      description: prod.description,
+      slug: prod.slug,
+      categoryId: prod.categoryId.toString(),
+      price: prod.price,
+      chefRecommended: prod.chefRecommended,
+      topPick: prod.topPick,
+      spiceLevel: prod.spiceLevel,
+      isVeg: prod.isVeg,
+      tags: prod.tags,
+      active: prod.active,
+      image: prod.image || "",
+      servingSize: prod.servingSize || "",
+      prepTime: prod.prepTime || "",
+      hasPortions: prod.hasPortions || false,
+      portions: prod.portions ? prod.portions.map((p: any) => ({
+        name: p.name,
+        price: p.price,
+      })) : [],
+    }));
+  } catch (err) {
+    console.error("Error loading menu data from database:", err);
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-cream">

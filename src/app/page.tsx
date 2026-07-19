@@ -17,12 +17,30 @@ export default async function Home(props: PageProps) {
   const isRTL = lang === "ar";
 
   // Fetch Homepage hero settings and products from the database on the server
-  const settings = await settingsRepository.getHomeSettings();
-  const productsResult = await productRepository.findWithFilters({
+  let settings = null;
+  let productsResult: { items: any[]; total: number; page: number; limit: number; totalPages: number } = {
+    items: [],
+    total: 0,
     page: 1,
-    limit: 100, // Fetch up to 100 active products to populate homepage sections
-    active: true,
-  });
+    limit: 100,
+    totalPages: 0,
+  };
+
+  try {
+    settings = await settingsRepository.getHomeSettings();
+  } catch (err) {
+    console.error("Error fetching homepage settings:", err);
+  }
+
+  try {
+    productsResult = await productRepository.findWithFilters({
+      page: 1,
+      limit: 100, // Fetch up to 100 active products to populate homepage sections
+      active: true,
+    });
+  } catch (err) {
+    console.error("Error fetching homepage products:", err);
+  }
 
   const products = productsResult.items;
 

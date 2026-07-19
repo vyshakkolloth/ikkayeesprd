@@ -160,7 +160,19 @@ class ProductRepository extends BaseRepository<Product> {
       }
     });
 
-    const result = await col.aggregate(pipeline).toArray();
+    let result: any[] = [];
+    try {
+      result = await this.runWithRetry((c) => c.aggregate(pipeline).toArray());
+    } catch (err) {
+      console.error("Failed to execute findWithFilters in ProductRepository after retries. Returning empty list.", err);
+      return {
+        items: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
     
     const total = result[0]?.metadata[0]?.total || 0;
     const rawItems = result[0]?.data || [];
@@ -217,12 +229,19 @@ class ProductRepository extends BaseRepository<Product> {
   }
 
   async getNextSortOrder(categoryId: string): Promise<number> {
-    const col = await this.getCollection();
-    const highest = await col
-      .find({ categoryId: new ObjectId(categoryId), isDeleted: { $ne: true } })
-      .sort({ sortOrder: -1 })
-      .limit(1)
-      .toArray();
+    let highest: any[] = [];
+    try {
+      highest = await this.runWithRetry((c) =>
+        c
+          .find({ categoryId: new ObjectId(categoryId), isDeleted: { $ne: true } })
+          .sort({ sortOrder: -1 })
+          .limit(1)
+          .toArray()
+      );
+    } catch (err) {
+      console.error("Failed to execute getNextSortOrder in ProductRepository after retries. Returning 0.", err);
+      return 0;
+    }
 
     if (highest.length > 0) {
       return (highest[0].sortOrder ?? 0) + 1;

@@ -24,8 +24,13 @@ class CategoryRepository extends BaseRepository<Category> {
   }
 
   async getNextPriority(): Promise<number> {
-    const col = await this.getCollection();
-    const highest = await col.find().sort({ priority: -1 } as any).limit(1).toArray();
+    let highest: any[] = [];
+    try {
+      highest = await this.runWithRetry((c) => c.find().sort({ priority: -1 } as any).limit(1).toArray());
+    } catch (err) {
+      console.error("Failed to execute getNextPriority in CategoryRepository after retries. Returning 0.", err);
+      return 0;
+    }
     if (highest.length > 0) {
       return (highest[0].priority ?? 0) + 1;
     }
@@ -48,7 +53,6 @@ class CategoryRepository extends BaseRepository<Category> {
     page?: number;
     limit?: number;
   }) {
-    const col = await this.getCollection();
     const query: Filter<Category> = {};
 
     // 1. Search filter
@@ -84,21 +88,34 @@ class CategoryRepository extends BaseRepository<Category> {
     const limit = Math.max(1, options.limit || 20);
     const skip = (page - 1) * limit;
 
-    // Use aggregation with $facet to fetch paginated items and total count in a single round-trip
-    const aggregation = await col
-      .aggregate([
-        { $match: query },
-        { $sort: sort },
-        {
-          $facet: {
-            items: [{ $skip: skip }, { $limit: limit }],
-            totalCount: [{ $count: "count" }],
-          },
-        },
-        // Keep the raw facet result; we'll extract total in code
-        { $project: { items: 1, totalCount: 1 } },
-      ])
-      .toArray();
+    let aggregation: any[] = [];
+    try {
+      aggregation = await this.runWithRetry((c) =>
+        c
+          .aggregate([
+            { $match: query },
+            { $sort: sort },
+            {
+              $facet: {
+                items: [{ $skip: skip }, { $limit: limit }],
+                totalCount: [{ $count: "count" }],
+              },
+            },
+            // Keep the raw facet result; we'll extract total in code
+            { $project: { items: 1, totalCount: 1 } },
+          ])
+          .toArray()
+      );
+    } catch (err) {
+      console.error("Failed to execute findWithFilters in CategoryRepository after retries. Returning empty list.", err);
+      return {
+        items: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
 
     const aggResult = aggregation[0] || { items: [], totalCount: [] };
     const items = aggResult.items;
@@ -140,8 +157,6 @@ class CategoryRepository extends BaseRepository<Category> {
   }
 
   async reorderCategories(orderedIds: string[]): Promise<boolean> {
-    const col = await this.getCollection();
-    
     const bulkOps = orderedIds.map((id, index) => ({
       updateOne: {
         filter: { _id: new ObjectId(id) },
@@ -151,8 +166,13 @@ class CategoryRepository extends BaseRepository<Category> {
 
     if (bulkOps.length === 0) return true;
 
-    const result = await col.bulkWrite(bulkOps as any);
-    return result.modifiedCount > 0;
+    try {
+      const result = await this.runWithRetry((c) => c.bulkWrite(bulkOps as any));
+      return result.modifiedCount > 0;
+    } catch (err) {
+      console.error("Failed to execute reorderCategories in CategoryRepository after retries.", err);
+      return false;
+    }
   }
 }
 
