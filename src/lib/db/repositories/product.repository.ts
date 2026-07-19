@@ -2,6 +2,15 @@ import { BaseRepository } from "./base.repository";
 import { Product, ProductSchema } from "../schemas/product.schema";
 import { Filter, Sort, ObjectId } from "mongodb";
 
+export interface FilteredProduct extends Omit<Product, "_id" | "categoryId"> {
+  _id: string;
+  categoryId: string;
+  categoryName: {
+    en: string;
+    ar: string;
+  };
+}
+
 class ProductRepository extends BaseRepository<Product> {
   constructor() {
     super("products");
@@ -11,11 +20,11 @@ class ProductRepository extends BaseRepository<Product> {
   private async setupIndexes() {
     try {
       const col = await this.getCollection();
-await col.createIndex({ slug: 1 }, { unique: true });
-    await col.createIndex({ categoryId: 1 });
-    await col.createIndex({ sortOrder: 1 });
-    // Text index for name fields and tags to accelerate search queries
-    await col.createIndex({ "name.en": "text", "name.ar": "text", tags: "text" });
+      await col.createIndex({ slug: 1 }, { unique: true });
+      await col.createIndex({ categoryId: 1 });
+      await col.createIndex({ sortOrder: 1 });
+      // Text index for name fields and tags to accelerate search queries
+      await col.createIndex({ "name.en": "text", "name.ar": "text", tags: "text" });
     } catch (err) {
       console.error("Failed to setup product indexes:", err);
     }
@@ -41,7 +50,13 @@ await col.createIndex({ slug: 1 }, { unique: true });
     sortOrder?: "asc" | "desc";
     page?: number;
     limit?: number;
-  }) {
+  }): Promise<{
+    items: FilteredProduct[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const col = await this.getCollection();
     
     // Base match criteria: exclude soft deleted
