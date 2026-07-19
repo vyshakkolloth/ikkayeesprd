@@ -548,7 +548,7 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
 
                     <div className="flex items-center justify-between pt-2">
                       <span className="font-playfair text-[15px] font-bold text-brand-dark">
-                        ${pick.priceUSD.toFixed(2)}
+                        KWD${pick.priceUSD.toFixed(2)}
                       </span>
                       <button
                         onClick={(e) => {
@@ -645,7 +645,7 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
 
                         <div className="flex items-center justify-between pt-1">
                           <span className="font-playfair text-sm font-bold text-brand-dark">
-                            ${item.priceUSD.toFixed(2)}
+                            KWD${item.priceUSD.toFixed(2)}
                           </span>
                           <button
                             onClick={(e) => {
@@ -790,12 +790,12 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
 
                 {/* Price Display */}
                 <div>
-                  {/* Responsive price: shows INR on mobile layout (hidden on md), USD on desktop layout (hidden on mobile) */}
+                  {/* Responsive price: shows INR on mobile layout (hidden on md), KWD on desktop layout (hidden on mobile) */}
                   <span className="block md:hidden font-sans text-2xl font-bold text-[#B88E4C]">
                     ₹{selectedItem.priceINR}
                   </span>
                   <span className="hidden md:block font-sans text-2xl font-bold text-[#B88E4C]">
-                    ${selectedItem.priceUSD.toFixed(2)}
+                    KWD${selectedItem.priceUSD.toFixed(2)}
                   </span>
                 </div>
 
