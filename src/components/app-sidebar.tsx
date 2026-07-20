@@ -20,7 +20,8 @@ import {
   UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon,
   SearchIcon, DatabaseIcon, FileChartColumnIcon,
   FileIcon, CommandIcon, UtensilsCrossed,
-  Salad, ClipboardList
+  Salad, ClipboardList,
+  BadgeDollarSign
 } from "lucide-react"
 
 import { usePathname } from "next/navigation";
@@ -74,16 +75,15 @@ const data = {
       ),
     },
     {
-      title: "Report",
-      url: "#",
+      title: "Sales Report",
+      url: "/dashboard/sales-report",
       icon: (
-        <FolderIcon
-        />
+        <BadgeDollarSign />
       ),
     },
     {
       title: "Team",
-      url: "/dashboard/usermanagment",
+      url: "/dashboard/team",
       icon: (
         <UsersIcon
         />
@@ -240,8 +240,8 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {/* <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
+        {/* <NavDocuments items={data.documents} /> */}
+        {/* <NavSecondary items={data.navSecondary} className="mt-auto" /> */}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={finalUser} />

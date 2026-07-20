@@ -124,6 +124,200 @@ class OrderRepository extends BaseRepository<Order> {
       return false;
     }
   }
+
+  async getConfirmedOrdersWithFilters(options: {
+    search?: string;
+    datePreset?: "all" | "today" | "yesterday" | "this-week" | "this-month" | "custom";
+    startDate?: string;
+    endDate?: string;
+    status?: string;
+    sortBy?: "confirmedAt" | "createdAt" | "totalAmountINR" | "invoiceNumber";
+    sortOrder?: "asc" | "desc";
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    items: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    summary: {
+      totalRevenue: number;
+      totalOrders: number;
+      avgOrderValue: number;
+      totalItemsCount: number;
+    };
+  }> {
+    try {
+      const db = await getDb();
+      const col = db.collection("confirmed_orders");
+
+      const matchFilter: Record<string, any> = {};
+
+      // 1. Date Range Filtering
+      const now = new Date();
+      let start: Date | undefined;
+      let end: Date | undefined;
+
+      const preset = options.datePreset || "all";
+
+      if (preset === "today") {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (preset === "yesterday") {
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59, 999);
+      } else if (preset === "this-week") {
+        const dayOfWeek = now.getDay();
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      } else if (preset === "this-month") {
+        start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      } else if (preset === "custom" || options.startDate || options.endDate) {
+        if (options.startDate) {
+          const s = new Date(options.startDate);
+          if (!isNaN(s.getTime())) {
+            s.setHours(0, 0, 0, 0);
+            start = s;
+          }
+        }
+        if (options.endDate) {
+          const e = new Date(options.endDate);
+          if (!isNaN(e.getTime())) {
+            e.setHours(23, 59, 59, 999);
+            end = e;
+          }
+        }
+      }
+
+      if (start || end) {
+        const dateQuery: Record<string, any> = {};
+        if (start) dateQuery.$gte = start;
+        if (end) dateQuery.$lte = end;
+
+        matchFilter.$or = [
+          { confirmedAt: dateQuery },
+          { createdAt: dateQuery }
+        ];
+      }
+
+      // 2. Status Filter
+      if (options.status && options.status !== "all") {
+        matchFilter.status = options.status;
+      }
+
+      // 3. Search Filter
+      if (options.search && options.search.trim()) {
+        const searchRegex = new RegExp(options.search.trim(), "i");
+        const searchConditions = [
+          { invoiceNumber: searchRegex },
+          { tableNumber: searchRegex },
+          { orderId: searchRegex },
+          { "items.name": searchRegex }
+        ];
+
+        if (matchFilter.$or) {
+          matchFilter.$and = [
+            { $or: matchFilter.$or },
+            { $or: searchConditions }
+          ];
+          delete matchFilter.$or;
+        } else {
+          matchFilter.$or = searchConditions;
+        }
+      }
+
+      // 4. Pagination & Sorting
+      const page = Math.max(1, options.page || 1);
+      const limit = Math.max(1, Math.min(100, options.limit || 10));
+      const skip = (page - 1) * limit;
+
+      const sortBy = options.sortBy || "confirmedAt";
+      const sortOrder = options.sortOrder === "asc" ? 1 : -1;
+
+      // Aggregation Pipeline for Faceted Execution (Items + Counts + Metrics)
+      const pipeline: any[] = [
+        { $match: matchFilter },
+        {
+          $facet: {
+            items: [
+              { $sort: { [sortBy]: sortOrder, _id: -1 } },
+              { $skip: skip },
+              { $limit: limit }
+            ],
+            totalCount: [
+              { $count: "count" }
+            ],
+            summaryMetrics: [
+              {
+                $group: {
+                  _id: null,
+                  totalRevenue: { $sum: "$totalAmountINR" },
+                  totalOrders: { $sum: 1 },
+                  totalItemsCount: {
+                    $sum: {
+                      $reduce: {
+                        input: { $ifNull: ["$items", []] },
+                        initialValue: 0,
+                        in: { $add: ["$$value", { $ifNull: ["$$this.quantity", 0] }] }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ];
+
+      const [aggregationResult] = await col.aggregate(pipeline).toArray();
+
+      const items = (aggregationResult?.items || []).map((doc: any) => ({
+        ...doc,
+        _id: doc._id ? doc._id.toString() : doc.orderId
+      }));
+
+      const total = aggregationResult?.totalCount?.[0]?.count || 0;
+      const totalPages = Math.ceil(total / limit) || 1;
+
+      const metric = aggregationResult?.summaryMetrics?.[0];
+      const totalRevenue = metric?.totalRevenue || 0;
+      const totalOrders = metric?.totalOrders || 0;
+      const totalItemsCount = metric?.totalItemsCount || 0;
+      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+      return {
+        items,
+        total,
+        page,
+        limit,
+        totalPages,
+        summary: {
+          totalRevenue,
+          totalOrders,
+          avgOrderValue,
+          totalItemsCount
+        }
+      };
+    } catch (err) {
+      console.error("Failed to fetch confirmed orders with filters:", err);
+      return {
+        items: [],
+        total: 0,
+        page: 1,
+        limit: options.limit || 10,
+        totalPages: 1,
+        summary: {
+          totalRevenue: 0,
+          totalOrders: 0,
+          avgOrderValue: 0,
+          totalItemsCount: 0
+        }
+      };
+    }
+  }
 }
 
 export const orderRepository = new OrderRepository();
+
