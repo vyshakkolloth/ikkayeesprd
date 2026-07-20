@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Menu, X, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/store/cartStore";
 import {
     Sheet,
     SheetContent,
@@ -23,10 +24,19 @@ const NAV_ITEMS = [
 export default function Header() {
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const { items } = useCart();
 
     useEffect(() => {
         setIsOpen(false);
     }, [pathname]);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const cartCount = mounted ? items.reduce((sum, item) => sum + item.quantity, 0) : 0;
+
     return (
         <header className="sticky top-0 z-50 w-full bg-brand-cream/95 backdrop-blur-md border-b border-brand-gold/10 transition-colors shadow-sm duration-300">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -78,12 +88,17 @@ export default function Header() {
 
                     {/* Right Action Section (Desktop) */}
                     <div className="hidden md:flex items-center gap-4">
-                        {/* My Selection Button */}
                         <Link
                             href="/selection"
-                            className="inline-flex h-11 items-center justify-center rounded-full border border-brand-gold px-6 text-sm font-medium text-brand-gold hover:bg-brand-gold hover:text-brand-cream transition-all duration-300 focus-visible:ring-2 focus-visible:ring-brand-gold/50 shadow-sm cursor-pointer select-none"
+                            className="relative flex size-11 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark hover:text-brand-gold hover:border-brand-gold transition-all duration-300 bg-brand-cream/50 hover:bg-white hover:scale-105 shadow-sm"
+                            aria-label="Cart"
                         >
-                            My Selection
+                            <ShoppingCart className="size-5.5" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold size-5 rounded-full flex items-center justify-center animate-bounce shadow-md">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Link>
                     </div>
 
@@ -91,10 +106,15 @@ export default function Header() {
                     <div className="flex md:hidden items-center gap-2">
                         <Link
                             href="/selection"
-                            className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark hover:text-brand-gold hover:border-brand-gold transition-colors bg-brand-cream/50"
+                            className="relative flex size-10 cursor-pointer items-center justify-center rounded-full border border-brand-gold/20 text-brand-dark hover:text-brand-gold hover:border-brand-gold transition-colors bg-brand-cream/50"
                             aria-label="Cart"
                         >
                             <ShoppingCart className="size-5" />
+                            {cartCount > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold size-4.5 rounded-full flex items-center justify-center animate-bounce shadow-sm">
+                                    {cartCount}
+                                </span>
+                            )}
                         </Link>
                         <button
                             onClick={() => setIsOpen(true)}

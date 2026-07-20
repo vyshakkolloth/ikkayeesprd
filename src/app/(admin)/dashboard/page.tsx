@@ -1,24 +1,17 @@
 
 import { ChartAreaInteractive } from "@/components/chart-area-interactive"
-import { DataTable } from "@/components/data-table"
 import { SectionCards } from "@/components/section-cards"
+import { OrdersManager } from "@/components/admin/orders-manager"
 
-// import { getSession } from "@/lib/auth/session"
-
-import data from "./data.json"
+export const metadata = {
+  title: "dashboard",
+  icons: {
+    icon: "/logos/ikkayeslogo.png",
+  },
+};
 
 export default async function Page() {
-  // const session = await getSession()
-  // const user = session
-  //   ? {
-  //     name: session.email.split("@")[0].replace(/[._-]/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
-  //     email: session.email,
-  //   }
-  //   : undefined
-
   return (
-
-
     <div className="flex flex-1 flex-col">
       <div className="@container/main flex flex-1 flex-col gap-2 ">
         <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 ">
@@ -27,10 +20,9 @@ export default async function Page() {
             <ChartAreaInteractive />
           </div>
 
-          <DataTable data={data} />
+          <OrdersManager />
         </div>
       </div>
     </div>
-
   )
 }

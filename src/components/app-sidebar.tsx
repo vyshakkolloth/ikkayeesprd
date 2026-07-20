@@ -20,7 +20,7 @@ import {
   UsersIcon, CameraIcon, FileTextIcon, Settings2Icon, CircleHelpIcon,
   SearchIcon, DatabaseIcon, FileChartColumnIcon,
   FileIcon, CommandIcon, UtensilsCrossed,
-  Salad
+  Salad, ClipboardList
 } from "lucide-react"
 
 import { usePathname } from "next/navigation";
@@ -29,8 +29,8 @@ import { usePathname } from "next/navigation";
 
 const data = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
+    name: "ikkayes",
+    email: "[EMAIL_ADDRESS]",
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
@@ -40,6 +40,13 @@ const data = {
       icon: (
         <LayoutDashboardIcon
         />
+      ),
+    },
+    {
+      title: "Live Orders",
+      url: "/dashboard/live-order",
+      icon: (
+        <ClipboardList />
       ),
     },
     {

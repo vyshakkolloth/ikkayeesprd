@@ -18,17 +18,30 @@ export type CartItem = {
 
 type CartState = {
   items: CartItem[];
+  orderId: string | null;
+  invoiceNumber: string | null;
+  checkoutTime: number | null;
+  checkedOut: boolean;
+  specialRequests: string;
   addItem: (product: Omit<CartItem, "quantity">, qty?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, delta: number) => void;
   setQuantity: (id: string, qty: number) => void;
   clear: () => void;
+  checkout: (orderId: string, invoiceNumber: string) => void;
+  resetCart: () => void;
+  setSpecialRequests: (req: string) => void;
 };
 
 export const useCart = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      orderId: null,
+      invoiceNumber: null,
+      checkoutTime: null,
+      checkedOut: false,
+      specialRequests: "",
 
       addItem: (product, qty = 1) =>
         set((state) => {
@@ -59,6 +72,26 @@ export const useCart = create<CartState>()(
         })),
 
       clear: () => set({ items: [] }),
+
+      checkout: (orderId, invoiceNumber) =>
+        set({
+          checkedOut: true,
+          orderId,
+          invoiceNumber,
+          checkoutTime: Date.now(),
+        }),
+
+      resetCart: () =>
+        set({
+          items: [],
+          checkedOut: false,
+          orderId: null,
+          invoiceNumber: null,
+          checkoutTime: null,
+          specialRequests: "",
+        }),
+
+      setSpecialRequests: (specialRequests) => set({ specialRequests }),
     }),
     { name: "menu-selection" }
   )
