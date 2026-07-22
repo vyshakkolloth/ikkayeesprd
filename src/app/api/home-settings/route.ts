@@ -35,10 +35,32 @@ export async function GET() {
   }
 }
 
+import { uploadImage } from "@/lib/aws/s3Client";
+
+function isDataUrl(str: string): boolean {
+  return /^data:.+;base64,/.test(str);
+}
+
+function dataUrlToBuffer(dataUrl: string): { mime: string; buffer: Buffer } {
+  const matches = dataUrl.match(/^data:(.+);base64,(.*)$/);
+  if (!matches) throw new Error("Invalid data URL");
+  const mime = matches[1];
+  const base64 = matches[2];
+  const buffer = Buffer.from(base64, "base64");
+  return { mime, buffer };
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { title, subtitle, imageUrl, ctaText } = body;
+    let { title, subtitle, imageUrl, ctaText } = body;
+
+  // If imageUrl is a base64 data URL, upload to S3 and replace with S3 key
+  if (imageUrl && isDataUrl(imageUrl)) {
+    const { mime, buffer } = dataUrlToBuffer(imageUrl);
+    const s3Key = await uploadImage(buffer, mime, "home-settings/");
+    imageUrl = s3Key;
+  }
 
     // Validate request fields
     if (!title?.en || !title?.ar || !subtitle?.en || !subtitle?.ar || !imageUrl) {

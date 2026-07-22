@@ -5,7 +5,7 @@ import { Filter, Sort, ObjectId } from "mongodb";
 class CategoryRepository extends BaseRepository<Category> {
   constructor() {
     super("categories");
-    this.setupIndexes();
+    this.setupIndexes().catch((err) => console.error("Category index setup error:", err));
   }
 
   private async setupIndexes() {

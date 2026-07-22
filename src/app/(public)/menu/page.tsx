@@ -4,8 +4,8 @@ import Footer from "@/components/clientLayout/footer";
 import MenuClient from "@/components/menu/MenuClient";
 import { categoryRepository } from "@/lib/db/repositories/category.repository";
 import { productRepository } from "@/lib/db/repositories/product.repository";
+import { migrateImagesToS3 } from "@/lib/aws/s3MigrationHelper";
 
-// Dynamic page revalidation interval (SSR, cache-busting after 60s)
 export const revalidate = 60;
 
 export const metadata: Metadata = {
@@ -24,6 +24,8 @@ export default async function MenuPage() {
   let products: any[] = [];
 
   try {
+    // Migrate any local images to S3 in background
+    migrateImagesToS3().catch((err) => console.error("Background S3 migration error:", err));
     // Fetch active categories (up to 100 items)
     const categoriesResult = await categoryRepository.findWithFilters({
       status: "active",
