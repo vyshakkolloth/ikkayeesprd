@@ -14,7 +14,7 @@ export interface FilteredProduct extends Omit<Product, "_id" | "categoryId"> {
 class ProductRepository extends BaseRepository<Product> {
   constructor() {
     super("products");
-    this.setupIndexes();
+    this.setupIndexes().catch((err) => console.error("Product index setup error:", err));
   }
 
   private async setupIndexes() {

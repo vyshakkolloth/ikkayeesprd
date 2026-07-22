@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { categoryRepository } from "@/lib/db/repositories/category.repository";
 import { CategorySchema } from "@/lib/db/schemas/category.schema";
+import { uploadImage } from "@/lib/aws/s3Client";
 
 export async function GET(request: Request) {
   try {
@@ -25,10 +26,22 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("GET /api/categories error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to fetch categories" },
-      { status: 500 }
+      { error: error.message || "Failed to fetch categories", stack: error.stack },
+      { status: 200 }
     );
   }
+}
+function isDataUrl(str: string): boolean {
+  return /^data:.+;base64,/.test(str);
+}
+
+function dataUrlToBuffer(dataUrl: string): { mime: string; buffer: Buffer } {
+  const matches = dataUrl.match(/^data:(.+);base64,(.*)$/);
+  if (!matches) throw new Error("Invalid data URL");
+  const mime = matches[1];
+  const base64 = matches[2];
+  const buffer = Buffer.from(base64, "base64");
+  return { mime, buffer };
 }
 
 export async function POST(request: Request) {
@@ -54,7 +67,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const categoryData = result.data;
+    let categoryData = result.data;
+
+  // If image is a base64 data URL, upload to S3 and replace with S3 key
+  if (categoryData.image && isDataUrl(categoryData.image)) {
+    const { mime, buffer } = dataUrlToBuffer(categoryData.image);
+    const s3Key = await uploadImage(buffer, mime, "categories/");
+    categoryData = { ...categoryData, image: s3Key };
+  }
 
     // 3. Check duplicate slug
     const existing = await categoryRepository.findBySlug(categoryData.slug);

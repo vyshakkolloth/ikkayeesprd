@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import { categoryRepository } from "@/lib/db/repositories/category.repository";
 import { CategorySchema } from "@/lib/db/schemas/category.schema";
+import { uploadImage } from "@/lib/aws/s3Client";
+
+function isDataUrl(str: string): boolean {
+  return /^data:.+;base64,/.test(str);
+}
+
+function dataUrlToBuffer(dataUrl: string): { mime: string; buffer: Buffer } {
+  const matches = dataUrl.match(/^data:(.+);base64,(.*)$/);
+  if (!matches) throw new Error("Invalid data URL");
+  const mime = matches[1];
+  const base64 = matches[2];
+  const buffer = Buffer.from(base64, "base64");
+  return { mime, buffer };
+}
 
 export async function PUT(
   request: Request,
@@ -19,9 +33,18 @@ export async function PUT(
       );
     }
 
+    let updateData = { ...body };
+
+    // Upload base64 image to S3 if updated
+    if (updateData.image && isDataUrl(updateData.image)) {
+      const { mime, buffer } = dataUrlToBuffer(updateData.image);
+      const s3Url = await uploadImage(buffer, mime, "categories/");
+      updateData.image = s3Url;
+    }
+
     // Verify slug uniqueness if slug is being updated
-    if (body.slug) {
-      const existing = await categoryRepository.findBySlug(body.slug);
+    if (updateData.slug) {
+      const existing = await categoryRepository.findBySlug(updateData.slug);
       if (existing && existing._id?.toString() !== id) {
         return NextResponse.json(
           { error: "Category slug must be unique" },
@@ -30,7 +53,7 @@ export async function PUT(
       }
     }
 
-    const success = await categoryRepository.updateCategory(id, body);
+    const success = await categoryRepository.updateCategory(id, updateData);
     if (!success) {
       return NextResponse.json(
         { error: "Category not found or no changes made" },

@@ -1,6 +1,20 @@
 import { NextResponse } from "next/server";
 import { productRepository } from "@/lib/db/repositories/product.repository";
 import { ProductSchema } from "@/lib/db/schemas/product.schema";
+import { uploadImage } from "@/lib/aws/s3Client";
+
+function isDataUrl(str: string): boolean {
+  return /^data:.+;base64,/.test(str);
+}
+
+function dataUrlToBuffer(dataUrl: string): { mime: string; buffer: Buffer } {
+  const matches = dataUrl.match(/^data:(.+);base64,(.*)$/);
+  if (!matches) throw new Error("Invalid data URL");
+  const mime = matches[1];
+  const base64 = matches[2];
+  const buffer = Buffer.from(base64, "base64");
+  return { mime, buffer };
+}
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -21,7 +35,14 @@ export async function PUT(request: Request, context: RouteParams) {
       );
     }
 
-    const productData = result.data;
+    let productData = result.data;
+
+    // Upload base64 image to S3 if updated
+    if (productData.image && isDataUrl(productData.image)) {
+      const { mime, buffer } = dataUrlToBuffer(productData.image);
+      const s3Url = await uploadImage(buffer, mime, "products/");
+      productData = { ...productData, image: s3Url };
+    }
 
     // Check duplicate slug (excluding self)
     const existing = await productRepository.findBySlug(productData.slug);
