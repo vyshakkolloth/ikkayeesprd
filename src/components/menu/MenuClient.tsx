@@ -137,6 +137,11 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
 
   const [addedItems, setAddedItems] = useState<Record<string, boolean>>({});
 
+  const getValidSpiceLevel = (level?: string): "low" | "medium" | "high" => {
+    if (level === "low" || level === "high") return level;
+    return "medium";
+  };
+
   // Detail Modal state
   const [selectedItem, setSelectedItem] = useState<Product | null>(null);
   const [spiceLevel, setSpiceLevel] = useState<"low" | "medium" | "high">("medium");
@@ -242,7 +247,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
             onClick={(e) => {
               e.stopPropagation();
               setSelectedItem(product);
-              setSpiceLevel(product.spiceLevel || "medium");
+              setSpiceLevel(getValidSpiceLevel(product.spiceLevel));
               setQuantity(1);
             }}
             className="h-8 px-2.5 rounded-full bg-[#FAF6EE] text-[#B88E4C] hover:bg-brand-gold/5 border border-brand-gold/20 flex items-center gap-1.5 text-[10px] font-bold tracking-wide transition-all active:scale-95 cursor-pointer shadow-2xs"
@@ -257,7 +262,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
             onClick={(e) => {
               e.stopPropagation();
               setSelectedItem(product);
-              setSpiceLevel(product.spiceLevel || "medium");
+              setSpiceLevel(getValidSpiceLevel(product.spiceLevel));
               setQuantity(1);
             }}
             className="h-8 px-3 rounded-full border border-brand-gold/35 text-brand-gold hover:bg-brand-gold/10 hover:border-brand-gold flex items-center justify-center text-2xs font-semibold tracking-wide transition-all active:scale-95 cursor-pointer shadow-sm bg-white"
@@ -552,7 +557,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                     key={pick.id}
                     onClick={() => {
                       setSelectedItem(pick);
-                      setSpiceLevel(pick.spiceLevel || "medium");
+                      setSpiceLevel(getValidSpiceLevel(pick.spiceLevel));
                       setQuantity(1);
                     }}
                     className="snap-start shrink-0 w-[270px] sm:w-[310px] bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-col group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 cursor-pointer"
@@ -642,7 +647,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                           key={item.id}
                           onClick={() => {
                             setSelectedItem(item);
-                            setSpiceLevel(item.spiceLevel || "medium");
+                            setSpiceLevel(getValidSpiceLevel(item.spiceLevel));
                             setQuantity(1);
                           }}
                           className="bg-white rounded-[20px] border border-brand-gold/10 overflow-hidden shadow-sm flex flex-row items-stretch group hover:shadow-md hover:border-brand-gold/20 transition-all duration-300 min-h-[110px] sm:min-h-[125px] cursor-pointer"
