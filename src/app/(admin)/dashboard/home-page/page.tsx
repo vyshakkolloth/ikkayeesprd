@@ -40,6 +40,7 @@ export default async function HomePageManagement() {
         ar: "استكشف القائمة",
       },
     },
+    banners: [],
   };
 
   const currentSettings = settings
@@ -50,6 +51,7 @@ export default async function HomePageManagement() {
           imageUrl: settings.hero?.imageUrl || defaultSettings.hero.imageUrl,
           ctaText: settings.hero?.ctaText || defaultSettings.hero.ctaText,
         },
+        banners: settings.banners || [],
       }
     : defaultSettings;
 

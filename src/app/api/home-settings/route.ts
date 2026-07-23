@@ -53,29 +53,75 @@ function dataUrlToBuffer(dataUrl: string): { mime: string; buffer: Buffer } {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    let { title, subtitle, imageUrl, ctaText } = body;
+    const { hero, banners, title, subtitle, imageUrl, ctaText } = body;
 
-  // If imageUrl is a base64 data URL, upload to S3 and replace with S3 key
-  if (imageUrl && isDataUrl(imageUrl)) {
-    const { mime, buffer } = dataUrlToBuffer(imageUrl);
-    const s3Key = await uploadImage(buffer, mime, "home-settings/");
-    imageUrl = s3Key;
-  }
+    const payload: {
+      hero?: {
+        title: { en: string; ar: string };
+        subtitle: { en: string; ar: string };
+        imageUrl: string;
+        ctaText?: { en: string; ar: string };
+      };
+      banners?: any[];
+    } = {};
 
-    // Validate request fields
-    if (!title?.en || !title?.ar || !subtitle?.en || !subtitle?.ar || !imageUrl) {
+    // 1. Process Hero settings if provided or flat title/subtitle/imageUrl
+    const heroData = hero || (title && subtitle && imageUrl ? { title, subtitle, imageUrl, ctaText } : null);
+
+    if (heroData) {
+      let heroImage = heroData.imageUrl;
+      if (heroImage && isDataUrl(heroImage)) {
+        const { mime, buffer } = dataUrlToBuffer(heroImage);
+        heroImage = await uploadImage(buffer, mime, "home-settings/");
+      }
+      payload.hero = {
+        title: heroData.title,
+        subtitle: heroData.subtitle,
+        imageUrl: heroImage,
+        ctaText: heroData.ctaText || { en: "Explore Menu", ar: "استكشف القائمة" },
+      };
+    }
+
+    // 2. Process Banners array if provided
+    if (Array.isArray(banners)) {
+      const processedBanners = [];
+      for (const banner of banners) {
+        let desktopImg = banner.desktopImageUrl;
+        let mobileImg = banner.mobileImageUrl;
+
+        if (desktopImg && isDataUrl(desktopImg)) {
+          const { mime, buffer } = dataUrlToBuffer(desktopImg);
+          desktopImg = await uploadImage(buffer, mime, "home-banners/");
+        }
+
+        if (mobileImg && isDataUrl(mobileImg)) {
+          const { mime, buffer } = dataUrlToBuffer(mobileImg);
+          mobileImg = await uploadImage(buffer, mime, "home-banners/");
+        }
+
+        processedBanners.push({
+          id: banner.id || `banner_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          title: banner.title || { en: "", ar: "" },
+          subtitle: banner.subtitle || { en: "", ar: "" },
+          desktopImageUrl: desktopImg || "",
+          mobileImageUrl: mobileImg || desktopImg || "",
+          linkUrl: banner.linkUrl || "",
+          ctaText: banner.ctaText || { en: "Explore", ar: "استكشف" },
+          active: banner.active !== undefined ? banner.active : true,
+          sortOrder: typeof banner.sortOrder === "number" ? banner.sortOrder : 0,
+        });
+      }
+      payload.banners = processedBanners;
+    }
+
+    if (!payload.hero && !payload.banners) {
       return NextResponse.json(
-        { error: "Validation failed: English and Arabic titles, subtitles and imageUrl are required" },
+        { error: "Validation failed: Neither hero nor banners payload provided" },
         { status: 400 }
       );
     }
 
-    const success = await settingsRepository.updateHomeSettings({
-      title,
-      subtitle,
-      imageUrl,
-      ctaText: ctaText || { en: "Explore Menu", ar: "استكشف القائمة" },
-    });
+    const success = await settingsRepository.updateHomeSettings(payload);
 
     if (!success) {
       return NextResponse.json(
@@ -84,7 +130,7 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, message: "Home settings updated successfully" });
+    return NextResponse.json({ success: true, message: "Home settings updated successfully", payload });
   } catch (error: any) {
     console.error("POST /api/home-settings error:", error);
     return NextResponse.json(

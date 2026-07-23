@@ -3,7 +3,8 @@ import Footer from "@/components/clientLayout/footer";
 import Link from "next/link";
 import { productRepository } from "@/lib/db/repositories/product.repository";
 import { settingsRepository } from "@/lib/db/repositories/settings.repository";
-import { Sparkles, ChefHat, TrendingUp, UtensilsCrossed, Compass, Layers, Heart } from "lucide-react";
+import BannerCarousel from "@/components/home/banner-carousel";
+import { Sparkles, ChefHat, TrendingUp, UtensilsCrossed, Compass, Layers, Heart, Gift } from "lucide-react";
 
 export const revalidate = 60; // ISR cache-busting after 60s for high performance and fast load times
 
@@ -61,6 +62,7 @@ export default async function Home(props: PageProps) {
         ar: "استكشف القائمة",
       },
     },
+    banners: [],
   };
 
   const currentSettings = settings
@@ -71,6 +73,7 @@ export default async function Home(props: PageProps) {
           imageUrl: settings.hero?.imageUrl || defaultSettings.hero.imageUrl,
           ctaText: settings.hero?.ctaText || defaultSettings.hero.ctaText,
         },
+        banners: settings.banners || [],
       }
     : defaultSettings;
 
@@ -153,12 +156,11 @@ export default async function Home(props: PageProps) {
       {/* Site-wide navigation Header */}
       <Header />
 
-      {/* Hero Section */}
+      {/* Hero / Main Section */}
       <main className="flex-grow">
-        
         {/* HERO BANNER BLOCK */}
         <section 
-          className="relative min-h-[500px] md:min-h-[600px] flex items-center justify-center text-center px-4 py-24 bg-cover bg-center transition-all duration-300"
+          className="relative min-h-[450px] md:min-h-[500px] flex items-center justify-center text-center px-4 py-20 bg-cover bg-center transition-all duration-300"
           style={{ backgroundImage: `linear-gradient(rgba(44, 37, 32, 0.7), rgba(44, 37, 32, 0.7)), url(${currentSettings.hero.imageUrl})` }}
         >
           {/* Subtle grid background pattern overlay */}
@@ -173,7 +175,7 @@ export default async function Home(props: PageProps) {
               {currentSettings.hero.title[lang as "en" | "ar"]}
             </h1>
 
-            <p className="text-base sm:text-lg md:text-xl text-gray-200 max-w-2xl mb-10 leading-relaxed font-sans font-light drop-shadow-sm">
+            <p className="text-base sm:text-lg md:text-xl text-[#FAF6EE] max-w-2xl mb-10 leading-relaxed font-sans font-light drop-shadow-sm">
               {currentSettings.hero.subtitle[lang as "en" | "ar"]}
             </p>
 
@@ -222,6 +224,26 @@ export default async function Home(props: PageProps) {
               </div>
             </section>
           )}
+
+          {/* BANNER SCROLL CAROUSEL SECTION (AFTER TOP DISHES) */}
+          <section className="space-y-6">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <Gift className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">
+                  {lang === "en" ? "Special Offers & Highlights" : "عروض خاصة وأبرز الفعاليات"}
+                </h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">
+                {lang === "en"
+                  ? "Explore seasonal features and exclusive culinary promotions"
+                  : "استكشف العروض الموسمية والتخفيضات الحصرية لمطبخنا"}
+              </p>
+            </div>
+            <div className="rounded-2xl overflow-hidden shadow-lg border border-amber-900/10">
+              <BannerCarousel banners={currentSettings.banners} lang={lang} />
+            </div>
+          </section>
 
           {/* 2. CHEF'S RECOMMENDATIONS */}
           {chefRecProducts.length > 0 && (

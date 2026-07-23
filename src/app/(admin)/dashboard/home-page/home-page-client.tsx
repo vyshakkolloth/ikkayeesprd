@@ -20,7 +20,13 @@ import {
   Sparkles,
   Compass,
   Layers,
-  Heart
+  Heart,
+  Trash2,
+  Smartphone,
+  Monitor,
+  Upload,
+  SlidersHorizontal,
+  Eye
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -29,6 +35,8 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { BannerItem } from "@/lib/db/repositories/settings.repository"
+import BannerCarousel from "@/components/home/banner-carousel"
 
 interface Product {
   _id: string
@@ -56,6 +64,7 @@ interface HomeSettings {
     imageUrl: string
     ctaText: { en: string; ar: string }
   }
+  banners?: BannerItem[]
 }
 
 interface HomePageClientProps {
@@ -68,11 +77,27 @@ export default function HomePageClient({ initialSettings, products, categories }
   // Local states
   const [settings, setSettings] = useState<HomeSettings>(initialSettings)
   const [productsList, setProductsList] = useState<Product[]>(products)
+  const [bannersList, setBannersList] = useState<BannerItem[]>(initialSettings.banners || [])
   const [previewLang, setPreviewLang] = useState<"en" | "ar">("en")
   
   // Dialog controls
   const [isHeroEditing, setIsHeroEditing] = useState(false)
   const [heroForm, setHeroForm] = useState(initialSettings.hero)
+
+  // Banner Dialog controls
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false)
+  const [editingBannerIndex, setEditingBannerIndex] = useState<number | null>(null)
+  const [bannerForm, setBannerForm] = useState<BannerItem>({
+    id: "",
+    title: { en: "", ar: "" },
+    subtitle: { en: "", ar: "" },
+    desktopImageUrl: "",
+    mobileImageUrl: "",
+    linkUrl: "/menu",
+    ctaText: { en: "Explore Menu", ar: "استكشف القائمة" },
+    active: true,
+    sortOrder: 0
+  })
   
   const [editingSection, setEditingSection] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -180,7 +205,7 @@ export default function HomePageClient({ initialSettings, products, categories }
       const res = await fetch("/api/home-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(heroForm)
+        body: JSON.stringify({ hero: heroForm })
       })
       const data = await res.json()
       if (res.ok) {
@@ -196,6 +221,101 @@ export default function HomePageClient({ initialSettings, products, categories }
     } finally {
       setIsSaving(false)
     }
+  }
+
+  // Handle Banner Carousel Management
+  const handleOpenAddBanner = () => {
+    setEditingBannerIndex(null)
+    setBannerForm({
+      id: `banner_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      title: { en: "", ar: "" },
+      subtitle: { en: "", ar: "" },
+      desktopImageUrl: "",
+      mobileImageUrl: "",
+      linkUrl: "/menu",
+      ctaText: { en: "Explore Menu", ar: "استكشف القائمة" },
+      active: true,
+      sortOrder: bannersList.length + 1
+    })
+    setIsBannerModalOpen(true)
+  }
+
+  const handleOpenEditBanner = (index: number) => {
+    setEditingBannerIndex(index)
+    setBannerForm({ ...bannersList[index] })
+    setIsBannerModalOpen(true)
+  }
+
+  const handleDeleteBanner = async (index: number) => {
+    const updated = bannersList.filter((_, idx) => idx !== index)
+    setBannersList(updated)
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/home-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ banners: updated })
+      })
+      if (res.ok) {
+        toast.success("Banner removed successfully!")
+      } else {
+        toast.error("Failed to remove banner")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Failed to remove banner")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveBannerSubmit = async () => {
+    if (!bannerForm.desktopImageUrl && !bannerForm.mobileImageUrl) {
+      toast.error("Please provide at least a desktop or mobile image for the banner")
+      return
+    }
+
+    let updatedList = [...bannersList]
+    if (editingBannerIndex !== null) {
+      updatedList[editingBannerIndex] = bannerForm
+    } else {
+      updatedList.push(bannerForm)
+    }
+
+    setIsSaving(true)
+    try {
+      const res = await fetch("/api/home-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ banners: updatedList })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const savedBanners = data.payload?.banners || updatedList
+        setBannersList(savedBanners)
+        setIsBannerModalOpen(false)
+        toast.success("Banner carousel updated successfully!")
+      } else {
+        toast.error(data.error || "Failed to update banner")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Error occurred while saving banner")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: "desktopImageUrl" | "mobileImageUrl") => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      if (typeof reader.result === "string") {
+        setBannerForm(prev => ({ ...prev, [field]: reader.result as string }))
+      }
+    }
+    reader.readAsDataURL(file)
   }
 
   // Handle saving Section products
@@ -318,6 +438,100 @@ export default function HomePageClient({ initialSettings, products, categories }
         {/* Soft Background glow highlights to simulate actual screen layout */}
         <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-[#B88E4C]/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-96 h-96 rounded-full bg-[#B88E4C]/10 blur-3xl pointer-events-none" />
+        
+        {/* BANNER CAROUSEL MANAGEMENT BLOCK */}
+        <div className="border-b bg-background/90 p-4 sm:p-6 space-y-4 relative z-10 font-sans">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="size-5 text-[#B88E4C]" />
+                <h3 className="font-bold text-base sm:text-lg text-foreground">Homepage Banner Scroll Carousel</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Upload separate images for Desktop and Mobile screens. Managed banners auto-scroll on the homepage.
+              </p>
+            </div>
+            <Button
+              onClick={handleOpenAddBanner}
+              className="bg-[#B88E4C] hover:bg-[#B88E4C]/90 text-[#FAF6EE] text-xs flex items-center gap-1.5 shadow-sm rounded-full"
+            >
+              <Plus className="size-4" />
+              Add Banner Slide
+            </Button>
+          </div>
+
+          {/* Banner Slider Preview */}
+          <div className="rounded-xl overflow-hidden border border-amber-900/15 shadow-sm relative group">
+            <div className="absolute top-3 end-3 z-30 flex gap-2">
+              <Badge className="bg-black/70 text-white backdrop-blur-sm text-[10px] flex items-center gap-1 font-sans border-0">
+                <Eye className="size-3 text-[#B88E4C]" />
+                Live Carousel Preview
+              </Badge>
+            </div>
+            <BannerCarousel banners={bannersList} lang={previewLang} />
+          </div>
+
+          {/* Configured Banners List Cards */}
+          {bannersList.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-2">
+              {bannersList.map((banner, index) => (
+                <div key={banner.id || index} className="bg-card border rounded-lg p-3 space-y-2 relative shadow-xs flex flex-col justify-between">
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-xs font-bold text-[#B88E4C]">#{index + 1}</span>
+                      <h4 className="font-semibold text-xs text-foreground truncate">
+                        {banner.title?.[previewLang] || banner.title?.en || "Untitled Banner"}
+                      </h4>
+                    </div>
+                    <Badge variant={banner.active ? "default" : "secondary"} className="text-[9px] px-1.5 py-0">
+                      {banner.active ? "Active" : "Disabled"}
+                    </Badge>
+                  </div>
+
+                  {/* Thumbnail Image Previews */}
+                  <div className="grid grid-cols-2 gap-2 text-[10px] text-muted-foreground pt-1">
+                    <div className="space-y-1">
+                      <span className="flex items-center gap-1">
+                        <Monitor className="size-3 text-brand-gold" /> Desktop Image
+                      </span>
+                      <div className="aspect-[16/9] rounded overflow-hidden bg-muted border">
+                        <img src={banner.desktopImageUrl || "/images/all_dishes.png"} alt="Desktop preview" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="flex items-center gap-1">
+                        <Smartphone className="size-3 text-brand-gold" /> Mobile Image
+                      </span>
+                      <div className="aspect-[9/16] max-h-16 rounded overflow-hidden bg-muted border mx-auto">
+                        <img src={banner.mobileImageUrl || banner.desktopImageUrl || "/images/all_dishes.png"} alt="Mobile preview" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end items-center gap-1 pt-2 border-t mt-1">
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      onClick={() => handleOpenEditBanner(index)}
+                      className="text-[11px] h-7 px-2 flex items-center gap-1"
+                    >
+                      <Edit3 className="size-3 text-brand-gold" />
+                      Edit
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      onClick={() => handleDeleteBanner(index)}
+                      className="text-[11px] h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="size-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         
         {/* HERO PREVIEW BLOCK */}
         <div 
@@ -802,6 +1016,238 @@ export default function HomePageClient({ initialSettings, products, categories }
                 <>
                   <Save className="size-4 mr-1.5" />
                   Save Selection
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 3. BANNER SLIDE CREATE / EDIT DIALOG */}
+      <Dialog open={isBannerModalOpen} onOpenChange={setIsBannerModalOpen}>
+        <DialogContent className="max-w-lg sm:max-w-xl max-h-[85vh] overflow-y-auto font-sans">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+              <SlidersHorizontal className="size-5 text-brand-gold" />
+              {editingBannerIndex !== null ? "Edit Banner Slide" : "Add New Banner Slide"}
+            </DialogTitle>
+            <DialogDescription>
+              Upload separate banner images for desktop and mobile devices, and configure localized overlay text.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-5 py-4">
+            
+            {/* Image Uploads Section */}
+            <div className="space-y-4 border-b pb-4 bg-muted/30 p-3 rounded-lg">
+              <h3 className="text-xs font-bold text-brand-gold tracking-widest uppercase flex items-center gap-1">
+                <ImageIcon className="size-3.5" />
+                Banner Images (Separate for Desktop & Mobile)
+              </h3>
+
+              {/* Desktop Image */}
+              <div className="space-y-2">
+                <Label htmlFor="desktop-img-url" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Monitor className="size-3.5 text-brand-gold" />
+                  Desktop Image (Recommended 1920x800 or 16:9 ratio)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="desktop-img-url"
+                    value={bannerForm.desktopImageUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, desktopImageUrl: e.target.value })}
+                    placeholder="Image URL or upload file below..."
+                    className="text-xs"
+                  />
+                  <label className="cursor-pointer inline-flex items-center justify-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-xs hover:bg-secondary/80 flex-shrink-0">
+                    <Upload className="size-3.5 mr-1" />
+                    Browse...
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageFileChange(e, "desktopImageUrl")}
+                    />
+                  </label>
+                </div>
+                {bannerForm.desktopImageUrl && (
+                  <div className="h-20 w-full rounded overflow-hidden bg-muted border relative">
+                    <img src={bannerForm.desktopImageUrl} alt="Desktop Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+
+              {/* Mobile Image */}
+              <div className="space-y-2">
+                <Label htmlFor="mobile-img-url" className="flex items-center gap-1.5 text-xs font-semibold">
+                  <Smartphone className="size-3.5 text-brand-gold" />
+                  Mobile Image (Recommended 800x1000 or vertical ratio)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="mobile-img-url"
+                    value={bannerForm.mobileImageUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, mobileImageUrl: e.target.value })}
+                    placeholder="Leave empty to use desktop image on mobile..."
+                    className="text-xs"
+                  />
+                  <label className="cursor-pointer inline-flex items-center justify-center rounded-md bg-secondary px-3 text-xs font-medium text-secondary-foreground shadow-xs hover:bg-secondary/80 flex-shrink-0">
+                    <Upload className="size-3.5 mr-1" />
+                    Browse...
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleImageFileChange(e, "mobileImageUrl")}
+                    />
+                  </label>
+                </div>
+                {bannerForm.mobileImageUrl && (
+                  <div className="h-20 w-32 rounded overflow-hidden bg-muted border relative">
+                    <img src={bannerForm.mobileImageUrl} alt="Mobile Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* English Content */}
+            <div className="space-y-3.5 border-b pb-4">
+              <h3 className="text-xs font-bold text-brand-gold tracking-widest uppercase flex items-center gap-1">
+                <Globe className="size-3" />
+                English Overlay Text
+              </h3>
+              
+              <div className="grid gap-1.5">
+                <Label htmlFor="banner-title-en">Title (English)</Label>
+                <Input
+                  id="banner-title-en"
+                  value={bannerForm.title?.en || ""}
+                  onChange={(e) => setBannerForm({
+                    ...bannerForm,
+                    title: { ...bannerForm.title, en: e.target.value, ar: bannerForm.title?.ar || "" }
+                  })}
+                  placeholder="e.g. Authentic Malabar Feast"
+                />
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="banner-sub-en">Subtitle (English)</Label>
+                <textarea
+                  id="banner-sub-en"
+                  rows={2}
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={bannerForm.subtitle?.en || ""}
+                  onChange={(e) => setBannerForm({
+                    ...bannerForm,
+                    subtitle: { ...bannerForm.subtitle, en: e.target.value, ar: bannerForm.subtitle?.ar || "" }
+                  })}
+                  placeholder="e.g. Discover rich traditional spices..."
+                />
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="banner-cta-en">Button CTA Text (English)</Label>
+                <Input
+                  id="banner-cta-en"
+                  value={bannerForm.ctaText?.en || "Explore Menu"}
+                  onChange={(e) => setBannerForm({
+                    ...bannerForm,
+                    ctaText: { ...bannerForm.ctaText, en: e.target.value, ar: bannerForm.ctaText?.ar || "استكشف القائمة" }
+                  })}
+                />
+              </div>
+            </div>
+
+            {/* Arabic Content */}
+            <div className="space-y-3.5 border-b pb-4" dir="rtl">
+              <h3 className="text-xs font-bold text-brand-gold tracking-widest uppercase flex items-center gap-1 justify-end">
+                <span>المحتوى العربي</span>
+                <Globe className="size-3" />
+              </h3>
+
+              <div className="grid gap-1.5 text-right">
+                <Label htmlFor="banner-title-ar">العنوان (عربي)</Label>
+                <Input
+                  id="banner-title-ar"
+                  value={bannerForm.title?.ar || ""}
+                  onChange={(e) => setBannerForm({
+                    ...bannerForm,
+                    title: { ...bannerForm.title, ar: e.target.value, en: bannerForm.title?.en || "" }
+                  })}
+                  className="text-right"
+                  placeholder="مثال: وليمة مليبار الأصيلة"
+                />
+              </div>
+
+              <div className="grid gap-1.5 text-right">
+                <Label htmlFor="banner-sub-ar">العنوان الفرعي (عربي)</Label>
+                <textarea
+                  id="banner-sub-ar"
+                  rows={2}
+                  className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring text-right"
+                  value={bannerForm.subtitle?.ar || ""}
+                  onChange={(e) => setBannerForm({
+                    ...bannerForm,
+                    subtitle: { ...bannerForm.subtitle, ar: e.target.value, en: bannerForm.subtitle?.en || "" }
+                  })}
+                  placeholder="مثال: اكتشف التوابل التقليدية الغنية..."
+                />
+              </div>
+
+              <div className="grid gap-1.5 text-right">
+                <Label htmlFor="banner-cta-ar">نص الزر (عربي)</Label>
+                <Input
+                  id="banner-cta-ar"
+                  value={bannerForm.ctaText?.ar || "استكشف القائمة"}
+                  onChange={(e) => setBannerForm({
+                    ...bannerForm,
+                    ctaText: { ...bannerForm.ctaText, ar: e.target.value, en: bannerForm.ctaText?.en || "Explore Menu" }
+                  })}
+                  className="text-right"
+                />
+              </div>
+            </div>
+
+            {/* Link & Settings */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid gap-1.5">
+                <Label htmlFor="banner-link">Target Link URL</Label>
+                <Input
+                  id="banner-link"
+                  value={bannerForm.linkUrl || "/menu"}
+                  onChange={(e) => setBannerForm({ ...bannerForm, linkUrl: e.target.value })}
+                  placeholder="/menu"
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                <Label htmlFor="banner-active" className="text-xs font-semibold cursor-pointer">
+                  Active in Carousel
+                </Label>
+                <Switch
+                  id="banner-active"
+                  checked={bannerForm.active}
+                  onCheckedChange={(checked) => setBannerForm({ ...bannerForm, active: checked })}
+                />
+              </div>
+            </div>
+
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsBannerModalOpen(false)} disabled={isSaving}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveBannerSubmit} disabled={isSaving} className="bg-brand-gold hover:bg-brand-gold/90 text-white">
+              {isSaving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin mr-1.5" />
+                  Saving Banner...
+                </>
+              ) : (
+                <>
+                  <Save className="size-4 mr-1.5" />
+                  Save Banner
                 </>
               )}
             </Button>
