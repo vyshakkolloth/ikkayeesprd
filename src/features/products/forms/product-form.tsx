@@ -49,7 +49,7 @@ const productFormSchema = z.object({
   ).default([]),
   chefRecommended: z.boolean().default(false),
   topPick: z.boolean().default(false),
-  spiceLevel: z.enum(["low", "medium", "high"]).default("medium"),
+  spiceLevel: z.enum(["none", "low", "medium", "high"]).optional().nullable().default("none"),
   pairedProductId: z.string().optional().nullable().default(""),
   servingSize: z.string().optional().default(""),
   prepTime: z.string().optional().default(""),
@@ -190,7 +190,7 @@ export function ProductForm({
       portions: initialData?.portions || [],
       chefRecommended: initialData?.chefRecommended || false,
       topPick: initialData?.topPick || false,
-      spiceLevel: initialData?.spiceLevel || "medium",
+      spiceLevel: initialData?.spiceLevel || "none",
       pairedProductId: initialData?.pairedProductId || "",
       servingSize: initialData?.servingSize || "",
       prepTime: initialData?.prepTime || "",
@@ -605,6 +605,7 @@ export function ProductForm({
                   <SelectValue placeholder="Select Spice Level" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None (Not Spicy / Optional)</SelectItem>
                   <SelectItem value="low">Low Spice</SelectItem>
                   <SelectItem value="medium">Medium Spice</SelectItem>
                   <SelectItem value="high">High Spice</SelectItem>

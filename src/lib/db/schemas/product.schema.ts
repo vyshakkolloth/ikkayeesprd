@@ -37,7 +37,7 @@ export const ProductSchema = z.object({
   ).default([]),
   chefRecommended: z.boolean().default(false),
   topPick: z.boolean().default(false),
-  spiceLevel: z.enum(["low", "medium", "high"]).default("medium"),
+  spiceLevel: z.enum(["none", "low", "medium", "high"]).optional().nullable().default("none"),
   pairedProductId: ObjectIdSchema.nullable().optional().default(null),
   servingSize: z.string().optional().default(""),
   prepTime: z.string().optional().default(""),

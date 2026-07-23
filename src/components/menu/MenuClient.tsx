@@ -19,7 +19,7 @@ interface Product {
   price: number;
   chefRecommended: boolean;
   topPick: boolean;
-  spiceLevel: "low" | "medium" | "high";
+  spiceLevel?: "none" | "low" | "medium" | "high" | string;
   isVeg: boolean;
   tags: string[];
   servingSize?: string;
@@ -779,8 +779,7 @@ export default function MenuClient({ categories = [], products = [] }: MenuClien
                 </h2>
 
                 {/* Spice Level Selection */}
-                {selectedItem.categoryId !== "6a5b2df4d2ccef9efa2e96a5" &&
-                  selectedItem.categoryId !== "6a5b2d78d2ccef9efa2e96a4" && (
+                {selectedItem.spiceLevel && selectedItem.spiceLevel !== "none" && (
                     <div className="mt-4">
                       <span className="block font-sans text-[9px] sm:text-[10px] font-bold tracking-widest text-brand-dark-light/65 uppercase">
                         {t.spiceLevel}

@@ -74,7 +74,7 @@ interface Product {
   hasPortions: boolean
   portions: { name: { en: string; ar: string }; price: number }[]
   chefRecommended: boolean
-  spiceLevel: "low" | "medium" | "high"
+  spiceLevel?: "none" | "low" | "medium" | "high" | string
   servingSize: string
   prepTime?: string
   isVeg: boolean
@@ -410,6 +410,7 @@ React.useEffect(() => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Spice Levels</SelectItem>
+                          <SelectItem value="none">No Spice (None)</SelectItem>
                           <SelectItem value="low">Low</SelectItem>
                           <SelectItem value="medium">Medium</SelectItem>
                           <SelectItem value="high">High</SelectItem>
@@ -647,9 +648,11 @@ React.useEffect(() => {
                             ✦ Top Pick
                           </Badge>
                         )}
-                        <Badge variant="outline" className="capitalize text-[10px]">
-                          {product.spiceLevel} Spice
-                        </Badge>
+                        {product.spiceLevel && product.spiceLevel !== "none" && (
+                          <Badge variant="outline" className="capitalize text-[10px]">
+                            {product.spiceLevel} Spice
+                          </Badge>
+                        )}
                       </div>
                     </TableCell>
 
