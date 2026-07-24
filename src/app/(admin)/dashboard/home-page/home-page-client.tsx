@@ -26,7 +26,10 @@ import {
   Monitor,
   Upload,
   SlidersHorizontal,
-  Eye
+  Eye,
+  ArrowUp,
+  ArrowDown,
+  GripVertical
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,6 +68,7 @@ interface HomeSettings {
     ctaText: { en: string; ar: string }
   }
   banners?: BannerItem[]
+  sectionsOrder?: string[]
 }
 
 interface HomePageClientProps {
@@ -78,6 +82,9 @@ export default function HomePageClient({ initialSettings, products, categories }
   const [settings, setSettings] = useState<HomeSettings>(initialSettings)
   const [productsList, setProductsList] = useState<Product[]>(products)
   const [bannersList, setBannersList] = useState<BannerItem[]>(initialSettings.banners || [])
+  const [sectionsOrder, setSectionsOrder] = useState<string[]>(
+    initialSettings.sectionsOrder || ["topPick", "chefRecommended", "trending", "mandi", "seafood", "heritage", "finish"]
+  )
   const [previewLang, setPreviewLang] = useState<"en" | "ar">("en")
   
   // Dialog controls
@@ -178,10 +185,53 @@ export default function HomePageClient({ initialSettings, products, categories }
         const cat = categories.find(c => c._id === p.categoryId)
         const inDessertCategory = cat?.name.en.toLowerCase().includes("dessert") || cat?.name.en.toLowerCase().includes("beverage") || cat?.name.en.toLowerCase().includes("sweet") || cat?.name.ar.includes("حلويات") || cat?.name.ar.includes("مشروب")
         const hasDessertTag = p.tags.includes("Dessert") || p.tags.includes("Sweet")
-        return inDessertCategory || hasDessertTag
-      }
     }
   ], [categories])
+
+  // Compute ordered sections based on current sectionsOrder
+  const orderedSections = useMemo(() => {
+    return [...sections].sort((a, b) => {
+      const indexA = sectionsOrder.indexOf(a.key)
+      const indexB = sectionsOrder.indexOf(b.key)
+      if (indexA === -1) return 1
+      if (indexB === -1) return -1
+      return indexA - indexB
+    })
+  }, [sections, sectionsOrder])
+
+  // Handle reordering sections
+  const handleMoveSection = async (sectionKey: string, direction: "up" | "down") => {
+    const currentIndex = sectionsOrder.indexOf(sectionKey)
+    if (currentIndex === -1) return
+
+    const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1
+    if (targetIndex < 0 || targetIndex >= sectionsOrder.length) return
+
+    const newOrder = [...sectionsOrder]
+    const [movedKey] = newOrder.splice(currentIndex, 1)
+    newOrder.splice(targetIndex, 0, movedKey)
+
+    setSectionsOrder(newOrder)
+    setIsSaving(true)
+
+    try {
+      const res = await fetch("/api/home-settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sectionsOrder: newOrder })
+      })
+      if (res.ok) {
+        toast.success("Section order updated successfully!")
+      } else {
+        toast.error("Failed to save section order")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Error occurred while saving section order")
+    } finally {
+      setIsSaving(false)
+    }
+  }
 
   // Open product selector for a section
   const handleOpenSectionManager = (sectionKey: string) => {
@@ -573,14 +623,78 @@ export default function HomePageClient({ initialSettings, products, categories }
         {/* DYNAMIC SECTIONS RENDER */}
         <div className="py-12 space-y-20 px-4 sm:px-6 lg:px-8">
           
-          {sections.map((section) => {
+          {/* SECTION REORDERING BAR */}
+          <div className="bg-background/80 backdrop-blur border rounded-xl p-4 sm:p-5 space-y-3 font-sans shadow-xs">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <GripVertical className="size-5 text-[#B88E4C]" />
+                <h3 className="font-bold text-sm sm:text-base text-foreground">Homepage Sections Order Manager</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Reorder homepage sections. Changes sync immediately to the database and landing page.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {orderedSections.map((s, idx) => (
+                <div key={s.key} className="flex items-center gap-1.5 bg-muted/60 border rounded-lg px-2.5 py-1 text-xs">
+                  <span className="font-bold text-[#B88E4C] text-[10px]">#{idx + 1}</span>
+                  <span className="font-medium text-foreground">{s.title[previewLang]}</span>
+                  <div className="flex items-center gap-0.5 ms-1 border-s ps-1.5">
+                    <button
+                      disabled={idx === 0 || isSaving}
+                      onClick={() => handleMoveSection(s.key, "up")}
+                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="size-3" />
+                    </button>
+                    <button
+                      disabled={idx === orderedSections.length - 1 || isSaving}
+                      onClick={() => handleMoveSection(s.key, "down")}
+                      className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:hover:text-muted-foreground"
+                      title="Move Down"
+                    >
+                      <ArrowDown className="size-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          {orderedSections.map((section, sectionIndex) => {
             const sectionProducts = productsList.filter(section.filterFn)
             
             return (
               <div key={section.key} className="relative group border border-dashed border-muted-foreground/15 hover:border-brand-gold/60 rounded-xl p-4 sm:p-6 transition-all bg-background/30 backdrop-blur-sm">
                 
                 {/* Admin Quick Section Controls */}
-                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex gap-2 opacity-95">
+                <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-2 opacity-95">
+                  <Badge variant="outline" className="bg-background/90 text-xs font-bold text-[#B88E4C] border-[#B88E4C]/30 px-2 py-1">
+                    Section #{sectionIndex + 1}
+                  </Badge>
+                  <div className="flex items-center bg-background/90 border rounded-md p-0.5 shadow-xs">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      disabled={sectionIndex === 0 || isSaving}
+                      onClick={() => handleMoveSection(section.key, "up")}
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      title="Move Section Up"
+                    >
+                      <ArrowUp className="size-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      disabled={sectionIndex === orderedSections.length - 1 || isSaving}
+                      onClick={() => handleMoveSection(section.key, "down")}
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      title="Move Section Down"
+                    >
+                      <ArrowDown className="size-3.5" />
+                    </Button>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
@@ -637,7 +751,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                             </div>
                             <div className="p-3 space-y-1">
                               <h4 className="font-playfair font-bold text-sm text-[#2C2520] truncate">{p.name[previewLang]}</h4>
-                              <p className="text-xs font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</p>
+                              <p className="text-xs font-semibold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</p>
                             </div>
                           </div>
                         ))}
@@ -659,7 +773,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                                 <h4 className="font-playfair font-bold text-base text-[#2C2520]">{p.name[previewLang]}</h4>
                                 <p className="text-xs text-[#5A4E46] line-clamp-2 font-sans font-light leading-relaxed">{p.description[previewLang]}</p>
                               </div>
-                              <p className="text-sm font-bold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</p>
+                              <p className="text-sm font-bold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</p>
                             </div>
                           </div>
                         ))}
@@ -679,7 +793,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                                 <Badge className="bg-[#B88E4C]/10 text-[#B88E4C] hover:bg-[#B88E4C]/10 text-[9px] px-1.5 py-0.5 border-0 font-sans">{section.badge[previewLang]}</Badge>
                               </div>
                               <p className="text-xs text-[#5A4E46] line-clamp-2 leading-relaxed font-sans font-light">{p.description[previewLang]}</p>
-                              <p className="text-xs sm:text-sm font-bold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</p>
+                              <p className="text-xs sm:text-sm font-bold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</p>
                             </div>
                           </div>
                         ))}
@@ -700,7 +814,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                             <div className="p-3 space-y-1 bg-gradient-to-b from-background to-[#FAF6EE]/30">
                               <h4 className="font-playfair font-bold text-xs sm:text-sm text-[#2C2520] truncate">{p.name[previewLang]}</h4>
                               <div className="flex justify-between items-center">
-                                <p className="text-xs font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</p>
+                                <p className="text-xs font-semibold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</p>
                               </div>
                             </div>
                           </div>
@@ -719,7 +833,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                             <div className="p-4 space-y-2">
                               <div className="flex justify-between items-baseline gap-2">
                                 <h4 className="font-playfair font-bold text-sm sm:text-base text-[#2C2520]">{p.name[previewLang]}</h4>
-                                <span className="text-xs font-bold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
+                                <span className="text-xs font-bold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
                               </div>
                               <p className="text-xs text-[#5A4E46] line-clamp-2 leading-relaxed font-sans font-light">{p.description[previewLang]}</p>
                             </div>
@@ -739,7 +853,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                             <Badge className="bg-[#B88E4C] text-white text-[8px] font-sans border-0">{section.badge[previewLang]}</Badge>
                             <h4 className="font-playfair font-bold text-lg sm:text-xl">{sectionProducts[0]?.name[previewLang]}</h4>
                             <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed font-sans font-light">{sectionProducts[0]?.description[previewLang]}</p>
-                            <p className="text-sm font-bold text-[#B88E4C] font-sans">${sectionProducts[0]?.price.toFixed(2)}</p>
+                            <p className="text-sm font-bold text-[#B88E4C] font-sans">{sectionProducts[0]?.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</p>
                           </div>
                         </div>
 
@@ -753,7 +867,7 @@ export default function HomePageClient({ initialSettings, products, categories }
                               <div className="flex-grow space-y-0.5 min-w-0">
                                 <h4 className="font-playfair font-bold text-sm text-[#2C2520] truncate">{p.name[previewLang]}</h4>
                                 <p className="text-xs text-[#5A4E46] font-sans line-clamp-1 font-light">{p.description[previewLang]}</p>
-                                <p className="text-xs font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</p>
+                                <p className="text-xs font-semibold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</p>
                               </div>
                             </div>
                           ))}

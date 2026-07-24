@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { settingsRepository } from "@/lib/db/repositories/settings.repository";
+import { homepageRepository } from "@/lib/db/repositories/homepage.repository";
+import { uploadImage } from "@/lib/aws/s3Client";
 
 const DEFAULT_SETTINGS = {
   hero: {
@@ -17,11 +18,13 @@ const DEFAULT_SETTINGS = {
       ar: "استكشف القائمة",
     },
   },
+  banners: [],
+  sectionsOrder: ["topPick", "chefRecommended", "trending", "mandi", "seafood", "heritage", "finish"],
 };
 
 export async function GET() {
   try {
-    const settings = await settingsRepository.getHomeSettings();
+    const settings = await homepageRepository.getHomepageData();
     if (!settings) {
       return NextResponse.json(DEFAULT_SETTINGS);
     }
@@ -34,8 +37,6 @@ export async function GET() {
     );
   }
 }
-
-import { uploadImage } from "@/lib/aws/s3Client";
 
 function isDataUrl(str: string): boolean {
   return /^data:.+;base64,/.test(str);
@@ -53,7 +54,7 @@ function dataUrlToBuffer(dataUrl: string): { mime: string; buffer: Buffer } {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { hero, banners, title, subtitle, imageUrl, ctaText } = body;
+    const { hero, banners, sectionsOrder, title, subtitle, imageUrl, ctaText } = body;
 
     const payload: {
       hero?: {
@@ -63,6 +64,7 @@ export async function POST(request: Request) {
         ctaText?: { en: string; ar: string };
       };
       banners?: any[];
+      sectionsOrder?: string[];
     } = {};
 
     // 1. Process Hero settings if provided or flat title/subtitle/imageUrl
@@ -114,23 +116,28 @@ export async function POST(request: Request) {
       payload.banners = processedBanners;
     }
 
-    if (!payload.hero && !payload.banners) {
+    // 3. Process Sections Order if provided
+    if (Array.isArray(sectionsOrder)) {
+      payload.sectionsOrder = sectionsOrder;
+    }
+
+    if (!payload.hero && !payload.banners && !payload.sectionsOrder) {
       return NextResponse.json(
-        { error: "Validation failed: Neither hero nor banners payload provided" },
+        { error: "Validation failed: Neither hero, banners, nor sectionsOrder payload provided" },
         { status: 400 }
       );
     }
 
-    const success = await settingsRepository.updateHomeSettings(payload);
+    const success = await homepageRepository.updateHomepageData(payload);
 
     if (!success) {
       return NextResponse.json(
-        { error: "Failed to update home settings" },
+        { error: "Failed to update homepage settings" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, message: "Home settings updated successfully", payload });
+    return NextResponse.json({ success: true, message: "Homepage settings updated successfully", payload });
   } catch (error: any) {
     console.error("POST /api/home-settings error:", error);
     return NextResponse.json(

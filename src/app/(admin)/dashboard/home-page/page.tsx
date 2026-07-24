@@ -1,9 +1,19 @@
 import { productRepository } from "@/lib/db/repositories/product.repository";
 import { categoryRepository } from "@/lib/db/repositories/category.repository";
-import { settingsRepository } from "@/lib/db/repositories/settings.repository";
+import { homepageRepository } from "@/lib/db/repositories/homepage.repository";
 import HomePageClient from "./home-page-client";
 
 export const revalidate = 0; // Disable caching on the admin dashboard page so updates are immediately visible
+
+const DEFAULT_SECTIONS_ORDER = [
+  "topPick",
+  "chefRecommended",
+  "trending",
+  "mandi",
+  "seafood",
+  "heritage",
+  "finish",
+];
 
 export default async function HomePageManagement() {
   // 1. Fetch active products
@@ -20,8 +30,8 @@ export default async function HomePageManagement() {
     status: "active",
   });
 
-  // 3. Fetch home settings
-  const settings = await settingsRepository.getHomeSettings();
+  // 3. Fetch homepage configuration from dedicated homepage collection
+  const settings = await homepageRepository.getHomepageData();
 
   // 4. Default settings if none are found in the database
   const defaultSettings = {
@@ -41,6 +51,7 @@ export default async function HomePageManagement() {
       },
     },
     banners: [],
+    sectionsOrder: DEFAULT_SECTIONS_ORDER,
   };
 
   const currentSettings = settings
@@ -52,6 +63,7 @@ export default async function HomePageManagement() {
           ctaText: settings.hero?.ctaText || defaultSettings.hero.ctaText,
         },
         banners: settings.banners || [],
+        sectionsOrder: settings.sectionsOrder || DEFAULT_SECTIONS_ORDER,
       }
     : defaultSettings;
 

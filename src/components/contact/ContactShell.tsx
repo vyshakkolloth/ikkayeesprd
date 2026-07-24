@@ -13,8 +13,8 @@ const INFO_CARDS = [
   {
     icon: <MapPin className="size-5 text-[#8A5A36]" />,
     title: "Visit Us",
-    line1: "Gujarat St, Kuttichira",
-    line2: "Kozhikode, Kerala",
+    line1: "Grand Hyper Market Building",
+    line2: "Abbasiya 85601, Kuwait",
   },
   {
     icon: <Clock className="size-5 text-[#8A5A36]" />,
@@ -33,7 +33,7 @@ const INFO_CARDS = [
 const PRESENCE_LOCATIONS = [
   { name: "THE GRAND IKKAYEES", location: "Liverpool, UK" },
   { name: "IKKAYEES LIVERPOOL", location: "Liverpool, UK" },
-  { name: "IKKAYEES KUWAIT", location: "Kuwait City, Kuwait" },
+  { name: "IKKAYEES KUWAIT", location: "Abbasiya 85601, Kuwait" },
   { name: "WRAPS AND SHAKES", location: "Liverpool, UK" },
   { name: "INDO CURRY", location: "Liverpool, UK" },
 ];
@@ -104,18 +104,19 @@ export default function ContactShell() {
       </section>
 
       {/* ----------------------------------------------------
-          Section 3: Flagship Restaurant (Kuwait)
+          Section 3: Flagship Restaurant (Kuwait) - Google Map Embed
           ---------------------------------------------------- */}
       <section className="w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-16 md:py-20 grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-16 items-center">
-        {/* Left: Golden Compass Map Image */}
+        {/* Left: Original Interactive Google Map Embed */}
         <div className="md:col-span-6 w-full flex justify-center">
-          <div className="relative w-full max-w-[440px] aspect-[4/5] rounded-[24px] overflow-hidden shadow-lg border border-brand-gold/10 group">
-            <Image
-              src="/images/golden_compass_map.png"
-              alt="Kuwait Flagship Restaurant Map Pin location - Golden Compass Luxury Dining"
-              fill
-              sizes="(max-w-xl) 100vw, 40vw"
-              className="object-cover transition-transform duration-750 group-hover:scale-101.5"
+          <div className="relative w-full h-[360px] sm:h-[420px] md:h-[460px] rounded-[24px] overflow-hidden shadow-lg border border-brand-gold/20 bg-brand-cream/20">
+            <iframe
+              title="IKKAYEES RESTAURANT KUWAIT Google Map Location"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d6961.702608468481!2d47.93366374363143!3d29.257324557579317!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3fcf990054e196f7%3A0xe438a06084f9ce9a!2sIKKAYEES%20RESTAURANT%20KUWAIT!5e0!3m2!1sen!2sin!4v1784861818387!5m2!1sen!2sin"
+              className="w-full h-full border-0 rounded-[24px]"
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
             />
           </div>
         </div>
@@ -139,14 +140,14 @@ export default function ContactShell() {
 
           {/* Quick Info Details */}
           <div className="flex flex-col gap-3.5 mt-2">
-            <div className="flex items-center gap-3">
-              <MapPin className="size-4.5 text-brand-gold" />
-              <span className="font-sans text-xs sm:text-sm text-brand-dark font-medium">
-                Kuwait City, Kuwait
+            <div className="flex items-start gap-3">
+              <MapPin className="size-4.5 text-brand-gold shrink-0 mt-0.5" />
+              <span className="font-sans text-xs sm:text-sm text-brand-dark font-medium leading-relaxed">
+                7W6V+227 Grand Hyper Market Building, Khaled El Arabi Al Ashhab Street, Abbasiya 85601, Kuwait
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <Phone className="size-4.5 text-brand-gold" />
+              <Phone className="size-4.5 text-brand-gold shrink-0" />
               <span className="font-sans text-xs sm:text-sm text-brand-dark font-medium">
                 +91 90373 72020
               </span>
@@ -155,12 +156,22 @@ export default function ContactShell() {
 
           {/* Action Row */}
           <div className="flex flex-wrap gap-4 mt-4 w-full">
-            <button className="h-11 px-7 bg-brand-dark hover:bg-brand-dark-light text-brand-cream font-sans text-xs font-semibold rounded-full shadow-md transition-all duration-200 cursor-pointer active:scale-97">
+            <a
+              href="tel:+919037372020"
+              className="h-11 px-7 bg-brand-dark hover:bg-brand-dark-light text-brand-cream font-sans text-xs font-semibold rounded-full shadow-md transition-all duration-200 cursor-pointer active:scale-97 flex items-center justify-center gap-2"
+            >
+              <Phone className="size-3.5" />
               Call to Reserve
-            </button>
-            <button className="h-11 px-7 bg-white hover:bg-brand-gold/5 text-brand-gold border border-brand-gold/40 hover:border-brand-gold font-sans text-xs font-semibold rounded-full shadow-sm transition-all duration-200 cursor-pointer active:scale-97">
+            </a>
+            <a
+              href="https://www.google.com/maps/place/IKKAYEES+RESTAURANT+KUWAIT/@29.2573246,47.9336637,17z/data=!3m1!4b1!4m6!3m5!1s0x3fcf990054e196f7:0xe438a06084f9ce9a"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="h-11 px-7 bg-white hover:bg-brand-gold/5 text-brand-gold border border-brand-gold/40 hover:border-brand-gold font-sans text-xs font-semibold rounded-full shadow-sm transition-all duration-200 cursor-pointer active:scale-97 flex items-center justify-center gap-2"
+            >
+              <MapPin className="size-3.5 text-brand-gold" />
               Get Directions
-            </button>
+            </a>
           </div>
         </div>
       </section>

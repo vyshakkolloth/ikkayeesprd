@@ -2,7 +2,7 @@ import Header from "@/components/clientLayout/header";
 import Footer from "@/components/clientLayout/footer";
 import Link from "next/link";
 import { productRepository } from "@/lib/db/repositories/product.repository";
-import { settingsRepository } from "@/lib/db/repositories/settings.repository";
+import { homepageRepository } from "@/lib/db/repositories/homepage.repository";
 import BannerCarousel from "@/components/home/banner-carousel";
 import TopDishesCarousel from "@/components/home/top-dishes-carousel";
 import { Sparkles, ChefHat, TrendingUp, UtensilsCrossed, Compass, Layers, Heart, Gift } from "lucide-react";
@@ -13,13 +13,23 @@ interface PageProps {
   searchParams: Promise<{ lang?: string }>;
 }
 
+const DEFAULT_SECTIONS_ORDER = [
+  "topPick",
+  "chefRecommended",
+  "trending",
+  "mandi",
+  "seafood",
+  "heritage",
+  "finish",
+];
+
 export default async function Home(props: PageProps) {
   // Read search parameters for language (defaults to English 'en')
   const { lang = "en" } = await props.searchParams;
   const isRTL = lang === "ar";
 
-  // Fetch Homepage hero settings and products from the database on the server
-  let settings = null;
+  // Fetch Homepage hero settings and products from dedicated homepage collection
+  let homepageData = null;
   let productsResult: { items: any[]; total: number; page: number; limit: number; totalPages: number } = {
     items: [],
     total: 0,
@@ -29,9 +39,9 @@ export default async function Home(props: PageProps) {
   };
 
   try {
-    settings = await settingsRepository.getHomeSettings();
+    homepageData = await homepageRepository.getHomepageData();
   } catch (err) {
-    console.error("Error fetching homepage settings:", err);
+    console.error("Error fetching homepage data:", err);
   }
 
   try {
@@ -64,17 +74,19 @@ export default async function Home(props: PageProps) {
       },
     },
     banners: [],
+    sectionsOrder: DEFAULT_SECTIONS_ORDER,
   };
 
-  const currentSettings = settings
+  const currentSettings = homepageData
     ? {
         hero: {
-          title: settings.hero?.title || defaultSettings.hero.title,
-          subtitle: settings.hero?.subtitle || defaultSettings.hero.subtitle,
-          imageUrl: settings.hero?.imageUrl || defaultSettings.hero.imageUrl,
-          ctaText: settings.hero?.ctaText || defaultSettings.hero.ctaText,
+          title: homepageData.hero?.title || defaultSettings.hero.title,
+          subtitle: homepageData.hero?.subtitle || defaultSettings.hero.subtitle,
+          imageUrl: homepageData.hero?.imageUrl || defaultSettings.hero.imageUrl,
+          ctaText: homepageData.hero?.ctaText || defaultSettings.hero.ctaText,
         },
-        banners: settings.banners || [],
+        banners: homepageData.banners || [],
+        sectionsOrder: homepageData.sectionsOrder || DEFAULT_SECTIONS_ORDER,
       }
     : defaultSettings;
 
@@ -152,6 +164,244 @@ export default async function Home(props: PageProps) {
     return p.tags.includes("Dessert") || p.tags.includes("Sweet") || p.categoryName?.[lang as "en" | "ar"]?.toLowerCase().includes("dessert") || p.categoryName?.en?.toLowerCase().includes("dessert") || p.categoryName?.en?.toLowerCase().includes("beverage") || p.categoryName?.ar?.includes("حلويات") || p.categoryName?.ar?.includes("مشروب");
   });
 
+  // Render individual section based on key
+  const renderSection = (sectionKey: string) => {
+    switch (sectionKey) {
+      case "topPick":
+        return topPickProducts.length > 0 ? (
+          <TopDishesCarousel
+            key="topPick"
+            products={topPickProducts}
+            lang={lang}
+            dict={dict}
+          />
+        ) : null;
+
+      case "chefRecommended":
+        return chefRecProducts.length > 0 ? (
+          <section key="chefRecommended" className="space-y-8">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <ChefHat className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.chefRec}</h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.chefRecSub}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {chefRecProducts.slice(0, 3).map((p) => (
+                <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-[#B88E4C]/25 shadow-sm relative flex flex-col hover:shadow-md transition-all">
+                  <span className="absolute top-3 left-3 bg-[#B88E4C] text-[#FAF6EE] text-[9px] px-2 py-1 rounded font-sans font-semibold tracking-wider">
+                    {dict.chefSpecial}
+                  </span>
+                  <div className="aspect-[16/10] w-full bg-muted overflow-hidden">
+                    <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-5 flex-grow flex flex-col justify-between gap-4">
+                    <div className="space-y-2">
+                      <h4 className="font-playfair font-bold text-lg text-[#2C2520]">{p.name[lang as "en" | "ar"]}</h4>
+                      <p className="text-xs sm:text-sm text-[#5A4E46] line-clamp-3 leading-relaxed font-sans font-light">{p.description[lang as "en" | "ar"]}</p>
+                    </div>
+                    <div className="flex justify-between items-center pt-2 border-t border-[#B88E4C]/10">
+                      <span className="text-base font-bold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                      <Link href="/menu" className="inline-flex h-9 items-center justify-center rounded-full bg-[#B88E4C] px-4 text-xs font-semibold text-[#FAF6EE] hover:bg-[#B88E4C]/95 transition-all">
+                        {dict.orderNow}
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null;
+
+      case "trending":
+        return trendingProducts.length > 0 ? (
+          <section key="trending" className="space-y-8">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.trending}</h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.trendingSub}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {trendingProducts.slice(0, 2).map((p) => (
+                <div key={p._id} className="bg-white rounded-2xl overflow-hidden border shadow-sm flex flex-col sm:flex-row items-stretch hover:shadow-md transition-all">
+                  <div className="w-full sm:w-44 h-48 sm:h-auto bg-muted relative flex-shrink-0">
+                    <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full" />
+                  </div>
+                  <div className="p-5 flex-grow space-y-3 flex flex-col justify-between min-w-0">
+                    <div className="space-y-1">
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="font-playfair font-bold text-base text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
+                        <span className="bg-[#B88E4C]/10 text-[#B88E4C] text-[9px] px-1.5 py-0.5 font-sans font-semibold rounded">{dict.trendingBadge}</span>
+                      </div>
+                      <p className="text-xs text-[#5A4E46] line-clamp-3 leading-relaxed font-sans font-light">{p.description[lang as "en" | "ar"]}</p>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-bold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                      <Link href="/menu" className="text-xs font-semibold text-[#B88E4C] hover:underline font-sans">{dict.orderNow} →</Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null;
+
+      case "mandi":
+        return mandiProducts.length > 0 ? (
+          <section key="mandi" className="space-y-8">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <UtensilsCrossed className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.mandi}</h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.mandiSub}</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {mandiProducts.slice(0, 4).map((p) => (
+                <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-[#2C2520]/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                  <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
+                    <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
+                    <span className="absolute top-2 left-2 bg-[#2C2520]/80 text-[#FAF6EE] text-[8px] px-1.5 py-0.5 rounded font-sans">{dict.mandiBadge}</span>
+                  </div>
+                  <div className="p-4 space-y-2 bg-gradient-to-b from-white to-[#FAF6EE]/20">
+                    <h4 className="font-playfair font-bold text-sm text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs sm:text-sm font-semibold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                      <Link href="/menu" className="text-[10px] text-[#B88E4C] font-sans hover:underline">{dict.orderNow}</Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null;
+
+      case "seafood":
+        return seafoodProducts.length > 0 ? (
+          <section key="seafood" className="space-y-8">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <Compass className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.seafood}</h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.seafoodSub}</p>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {seafoodProducts.slice(0, 4).map((p) => (
+                <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-[#2C2520]/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                  <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
+                    <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
+                    <span className="absolute top-2 left-2 bg-[#B88E4C] text-[#FAF6EE] text-[8px] px-1.5 py-0.5 rounded font-sans">{dict.seafoodBadge}</span>
+                  </div>
+                  <div className="p-4 space-y-2 bg-gradient-to-b from-white to-[#FAF6EE]/20">
+                    <h4 className="font-playfair font-bold text-sm text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs sm:text-sm font-semibold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                      <Link href="/menu" className="text-[10px] text-[#B88E4C] font-sans hover:underline">{dict.orderNow}</Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null;
+
+      case "heritage":
+        return heritageProducts.length > 0 ? (
+          <section key="heritage" className="space-y-8">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <Layers className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.heritage}</h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.heritageSub}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {heritageProducts.slice(0, 3).map((p) => (
+                <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-amber-950/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
+                  <div className="aspect-[4/3] w-full bg-muted overflow-hidden">
+                    <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
+                  </div>
+                  <div className="p-5 space-y-3 flex-grow flex flex-col justify-between">
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-baseline gap-2">
+                        <h4 className="font-playfair font-bold text-base text-[#2C2520]">{p.name[lang as "en" | "ar"]}</h4>
+                        <span className="text-sm font-bold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-[#5A4E46] line-clamp-3 leading-relaxed font-sans font-light">{p.description[lang as "en" | "ar"]}</p>
+                    </div>
+                    <Link href="/menu" className="text-xs font-semibold text-[#B88E4C] hover:underline font-sans">{dict.orderNow} →</Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null;
+
+      case "finish":
+        return dessertProducts.length > 0 ? (
+          <section key="finish" className="space-y-8">
+            <div className="flex flex-col gap-2 max-w-xl">
+              <div className="flex items-center gap-2">
+                <Heart className="size-5 text-[#B88E4C]" />
+                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.finish}</h2>
+              </div>
+              <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.finishSub}</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+              {/* Left Side: Large Featured Sweet (2 cols) */}
+              <div className="md:col-span-2 bg-[#2C2520] text-[#FAF6EE] rounded-2xl overflow-hidden shadow-sm relative flex flex-col justify-end min-h-[300px] border border-amber-950/15 group">
+                <img src={dessertProducts[0].image || "/images/restaurant_interior.png"} alt={dessertProducts[0].name[lang as "en" | "ar"]} className="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#2C2520] via-[#2C2520]/20 to-transparent" />
+                <div className="p-6 space-y-2 relative z-10">
+                  <span className="bg-[#B88E4C] text-[#FAF6EE] text-[8px] font-sans tracking-wide px-2 py-0.5 rounded uppercase font-semibold">
+                    {dict.finishBadge}
+                  </span>
+                  <h4 className="font-playfair font-bold text-xl sm:text-2xl">{dessertProducts[0].name[lang as "en" | "ar"]}</h4>
+                  <p className="text-xs text-gray-300 line-clamp-3 leading-relaxed font-sans font-light">{dessertProducts[0].description[lang as "en" | "ar"]}</p>
+                  <div className="flex justify-between items-center pt-2">
+                    <span className="text-base font-bold text-[#B88E4C] font-sans">{dessertProducts[0].price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                    <Link href="/menu" className="text-xs font-semibold text-white hover:text-brand-gold transition-colors">{dict.orderNow} →</Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: List of Desserts (3 cols) */}
+              <div className="md:col-span-3 flex flex-col gap-3 justify-center">
+                {dessertProducts.slice(1, 4).map((p) => (
+                  <div key={p._id} className="bg-white border rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all shadow-xs">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0">
+                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full" />
+                    </div>
+                    <div className="flex-grow space-y-1 min-w-0">
+                      <h4 className="font-playfair font-bold text-base text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
+                      <p className="text-xs text-[#5A4E46] font-sans line-clamp-1 font-light leading-relaxed">{p.description[lang as "en" | "ar"]}</p>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs sm:text-sm font-semibold text-[#B88E4C] font-sans">{p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}</span>
+                        <Link href="/menu" className="text-xs text-[#B88E4C] hover:underline font-sans">{dict.orderNow}</Link>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null;
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-brand-cream text-brand-dark overflow-x-hidden" dir={isRTL ? "rtl" : "ltr"}>
       {/* Site-wide navigation Header */}
@@ -192,254 +442,30 @@ export default async function Home(props: PageProps) {
         {/* Dynamic Homepage Sections */}
         <div className="py-20 space-y-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* 1. TOP DISHES */}
-          {topPickProducts.length > 0 && (
-            <TopDishesCarousel
-              products={topPickProducts}
-              lang={lang}
-              dict={dict}
-            />
-          )}
-
-          {/* BANNER SCROLL CAROUSEL SECTION (AFTER TOP DISHES) */}
-          <section className="space-y-6">
-            <div className="flex flex-col gap-2 max-w-xl">
-              <div className="flex items-center gap-2">
-                <Gift className="size-5 text-[#B88E4C]" />
-                <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">
-                  {lang === "en" ? "Special Offers & Highlights" : "عروض خاصة وأبرز الفعاليات"}
-                </h2>
-              </div>
-              <p className="text-sm text-[#5A4E46] font-sans font-light">
-                {lang === "en"
-                  ? "Explore seasonal features and exclusive culinary promotions"
-                  : "استكشف العروض الموسمية والتخفيضات الحصرية لمطبخنا"}
-              </p>
-            </div>
-            <div className="rounded-2xl overflow-hidden shadow-lg border border-amber-900/10">
-              <BannerCarousel banners={currentSettings.banners} lang={lang} />
-            </div>
-          </section>
-
-          {/* 2. CHEF'S RECOMMENDATIONS */}
-          {chefRecProducts.length > 0 && (
-            <section className="space-y-8">
+          {/* BANNER SCROLL CAROUSEL SECTION */}
+          {currentSettings.banners && currentSettings.banners.length > 0 && (
+            <section className="space-y-6">
               <div className="flex flex-col gap-2 max-w-xl">
                 <div className="flex items-center gap-2">
-                  <ChefHat className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.chefRec}</h2>
+                  <Gift className="size-5 text-[#B88E4C]" />
+                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">
+                    {lang === "en" ? "Special Offers & Highlights" : "عروض خاصة وأبرز الفعاليات"}
+                  </h2>
                 </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.chefRecSub}</p>
+                <p className="text-sm text-[#5A4E46] font-sans font-light">
+                  {lang === "en"
+                    ? "Explore seasonal features and exclusive culinary promotions"
+                    : "استكشف العروض الموسمية والتخفيضات الحصرية لمطبخنا"}
+                </p>
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {chefRecProducts.slice(0, 3).map((p) => (
-                  <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-[#B88E4C]/25 shadow-sm relative flex flex-col hover:shadow-md transition-all">
-                    <span className="absolute top-3 left-3 bg-[#B88E4C] text-[#FAF6EE] text-[9px] px-2 py-1 rounded font-sans font-semibold tracking-wider">
-                      {dict.chefSpecial}
-                    </span>
-                    <div className="aspect-[16/10] w-full bg-muted overflow-hidden">
-                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
-                    </div>
-                    <div className="p-5 flex-grow flex flex-col justify-between gap-4">
-                      <div className="space-y-2">
-                        <h4 className="font-playfair font-bold text-lg text-[#2C2520]">{p.name[lang as "en" | "ar"]}</h4>
-                        <p className="text-xs sm:text-sm text-[#5A4E46] line-clamp-3 leading-relaxed font-sans font-light">{p.description[lang as "en" | "ar"]}</p>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-[#B88E4C]/10">
-                        <span className="text-base font-bold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                        <Link href="/menu" className="inline-flex h-9 items-center justify-center rounded-full bg-[#B88E4C] px-4 text-xs font-semibold text-[#FAF6EE] hover:bg-[#B88E4C]/95 transition-all">
-                          {dict.orderNow}
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div className="rounded-2xl overflow-hidden shadow-lg border border-amber-900/10">
+                <BannerCarousel banners={currentSettings.banners} lang={lang} />
               </div>
             </section>
           )}
 
-          {/* 3. TRENDING TODAY */}
-          {trendingProducts.length > 0 && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.trending}</h2>
-                </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.trendingSub}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {trendingProducts.slice(0, 2).map((p) => (
-                  <div key={p._id} className="bg-white rounded-2xl overflow-hidden border shadow-sm flex flex-col sm:flex-row items-stretch hover:shadow-md transition-all">
-                    <div className="w-full sm:w-44 h-48 sm:h-auto bg-muted relative flex-shrink-0">
-                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full" />
-                    </div>
-                    <div className="p-5 flex-grow space-y-3 flex flex-col justify-between min-w-0">
-                      <div className="space-y-1">
-                        <div className="flex justify-between items-start gap-2">
-                          <h4 className="font-playfair font-bold text-base text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
-                          <span className="bg-[#B88E4C]/10 text-[#B88E4C] text-[9px] px-1.5 py-0.5 font-sans font-semibold rounded">{dict.trendingBadge}</span>
-                        </div>
-                        <p className="text-xs text-[#5A4E46] line-clamp-3 leading-relaxed font-sans font-light">{p.description[lang as "en" | "ar"]}</p>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-bold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                        <Link href="/menu" className="text-xs font-semibold text-[#B88E4C] hover:underline font-sans">{dict.orderNow} →</Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 4. SIGNATURE MANDI COLLECTION */}
-          {mandiProducts.length > 0 && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <UtensilsCrossed className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.mandi}</h2>
-                </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.mandiSub}</p>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {mandiProducts.slice(0, 4).map((p) => (
-                  <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-[#2C2520]/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-                    <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
-                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
-                      <span className="absolute top-2 left-2 bg-[#2C2520]/80 text-[#FAF6EE] text-[8px] px-1.5 py-0.5 rounded font-sans">{dict.mandiBadge}</span>
-                    </div>
-                    <div className="p-4 space-y-2 bg-gradient-to-b from-white to-[#FAF6EE]/20">
-                      <h4 className="font-playfair font-bold text-sm text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                        <Link href="/menu" className="text-[10px] text-[#B88E4C] font-sans hover:underline">{dict.orderNow}</Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 5. SEAFOOD HIGHLIGHTS */}
-          {seafoodProducts.length > 0 && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <Compass className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.seafood}</h2>
-                </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.seafoodSub}</p>
-              </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {seafoodProducts.slice(0, 4).map((p) => (
-                  <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-[#2C2520]/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-                    <div className="aspect-[4/3] w-full bg-muted relative overflow-hidden">
-                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
-                      <span className="absolute top-2 left-2 bg-[#B88E4C] text-[#FAF6EE] text-[8px] px-1.5 py-0.5 rounded font-sans">{dict.seafoodBadge}</span>
-                    </div>
-                    <div className="p-4 space-y-2 bg-gradient-to-b from-white to-[#FAF6EE]/20">
-                      <h4 className="font-playfair font-bold text-sm text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                        <Link href="/menu" className="text-[10px] text-[#B88E4C] font-sans hover:underline">{dict.orderNow}</Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 6. HERITAGE CLASSICS */}
-          {heritageProducts.length > 0 && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <Layers className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.heritage}</h2>
-                </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.heritageSub}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {heritageProducts.slice(0, 3).map((p) => (
-                  <div key={p._id} className="bg-white rounded-2xl overflow-hidden border border-amber-950/5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between">
-                    <div className="aspect-[4/3] w-full bg-muted overflow-hidden">
-                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
-                    </div>
-                    <div className="p-5 space-y-3 flex-grow flex flex-col justify-between">
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between items-baseline gap-2">
-                          <h4 className="font-playfair font-bold text-base text-[#2C2520]">{p.name[lang as "en" | "ar"]}</h4>
-                          <span className="text-sm font-bold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-[#5A4E46] line-clamp-3 leading-relaxed font-sans font-light">{p.description[lang as "en" | "ar"]}</p>
-                      </div>
-                      <Link href="/menu" className="text-xs font-semibold text-[#B88E4C] hover:underline font-sans">{dict.orderNow} →</Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* 7. THE PERFECT FINISH */}
-          {dessertProducts.length > 0 && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <Heart className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.finish}</h2>
-                </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.finishSub}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-                {/* Left Side: Large Featured Sweet (2 cols) */}
-                <div className="md:col-span-2 bg-[#2C2520] text-[#FAF6EE] rounded-2xl overflow-hidden shadow-sm relative flex flex-col justify-end min-h-[300px] border border-amber-950/15 group">
-                  <img src={dessertProducts[0].image || "/images/restaurant_interior.png"} alt={dessertProducts[0].name[lang as "en" | "ar"]} className="absolute inset-0 w-full h-full object-cover opacity-45 group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#2C2520] via-[#2C2520]/20 to-transparent" />
-                  <div className="p-6 space-y-2 relative z-10">
-                    <span className="bg-[#B88E4C] text-[#FAF6EE] text-[8px] font-sans tracking-wide px-2 py-0.5 rounded uppercase font-semibold">
-                      {dict.finishBadge}
-                    </span>
-                    <h4 className="font-playfair font-bold text-xl sm:text-2xl">{dessertProducts[0].name[lang as "en" | "ar"]}</h4>
-                    <p className="text-xs text-gray-300 line-clamp-3 leading-relaxed font-sans font-light">{dessertProducts[0].description[lang as "en" | "ar"]}</p>
-                    <div className="flex justify-between items-center pt-2">
-                      <span className="text-base font-bold text-[#B88E4C] font-sans">${dessertProducts[0].price.toFixed(2)}</span>
-                      <Link href="/menu" className="text-xs font-semibold text-white hover:text-brand-gold transition-colors">{dict.orderNow} →</Link>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Side: List of Desserts (3 cols) */}
-                <div className="md:col-span-3 flex flex-col gap-3 justify-center">
-                  {dessertProducts.slice(1, 4).map((p) => (
-                    <div key={p._id} className="bg-white border rounded-2xl p-4 flex items-center gap-4 hover:shadow-md transition-all shadow-xs">
-                      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-                        <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full" />
-                      </div>
-                      <div className="flex-grow space-y-1 min-w-0">
-                        <h4 className="font-playfair font-bold text-base text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
-                        <p className="text-xs text-[#5A4E46] font-sans line-clamp-1 font-light leading-relaxed">{p.description[lang as "en" | "ar"]}</p>
-                        <div className="flex justify-between items-center">
-                          <span className="text-xs sm:text-sm font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                          <Link href="/menu" className="text-xs text-[#B88E4C] hover:underline font-sans">{dict.orderNow}</Link>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-          )}
+          {/* DYNAMICALLY ORDERED DISH SECTIONS */}
+          {currentSettings.sectionsOrder.map((sectionKey: string) => renderSection(sectionKey))}
 
           {/* Bottom Call To Action */}
           <section className="text-center py-12 border-t border-[#B88E4C]/15">
@@ -448,7 +474,7 @@ export default async function Home(props: PageProps) {
             </h3>
             <Link
               href="/menu"
-              className="inline-flex h-12 items-center justify-center rounded-full bg-[#B88E4C] px-8 text-sm font-semibold text-[#FAF6EE] shadow-md hover:bg-[#B88E4C]/95 transition-all"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-[#2C2520] px-6 text-sm font-semibold text-[#FAF6EE] shadow hover:bg-[#2C2520]/90 transition-all"
             >
               {dict.viewAll}
             </Link>
@@ -457,7 +483,7 @@ export default async function Home(props: PageProps) {
         </div>
       </main>
 
-      {/* Premium site-wide Footer */}
+      {/* Footer */}
       <Footer />
     </div>
   );

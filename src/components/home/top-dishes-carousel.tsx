@@ -250,7 +250,7 @@ export default function TopDishesCarousel({
                 </h4>
                 <div className="flex justify-between items-center pt-1 border-t border-amber-900/5">
                   <span className="text-sm font-bold text-[#B88E4C] font-sans">
-                    ${p.price.toFixed(2)}
+                    {p.price.toFixed(3)} {isRTL ? "د.ك" : "KWD"}
                   </span>
                   <Link
                     href="/menu"
