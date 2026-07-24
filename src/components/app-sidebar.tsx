@@ -35,14 +35,7 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   navMain: [
-    {
-      title: "Dashboard",
-      url: "/dashboard",
-      icon: (
-        <LayoutDashboardIcon
-        />
-      ),
-    },
+
     {
       title: "Live Orders",
       url: "/dashboard/live-order",

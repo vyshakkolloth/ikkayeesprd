@@ -50,6 +50,7 @@ export default function Header() {
                                     alt="Ikkayes Kitchen Logo"
                                     width={56}
                                     height={56}
+                                    style={{ width: "auto", height: "auto" }}
                                     className="rounded-full object-cover"
                                     priority
                                 />

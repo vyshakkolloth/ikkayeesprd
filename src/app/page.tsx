@@ -4,6 +4,7 @@ import Link from "next/link";
 import { productRepository } from "@/lib/db/repositories/product.repository";
 import { settingsRepository } from "@/lib/db/repositories/settings.repository";
 import BannerCarousel from "@/components/home/banner-carousel";
+import TopDishesCarousel from "@/components/home/top-dishes-carousel";
 import { Sparkles, ChefHat, TrendingUp, UtensilsCrossed, Compass, Layers, Heart, Gift } from "lucide-react";
 
 export const revalidate = 60; // ISR cache-busting after 60s for high performance and fast load times
@@ -193,36 +194,11 @@ export default async function Home(props: PageProps) {
           
           {/* 1. TOP DISHES */}
           {topPickProducts.length > 0 && (
-            <section className="space-y-8">
-              <div className="flex flex-col gap-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="size-5 text-[#B88E4C]" />
-                  <h2 className="text-2xl sm:text-3xl font-playfair font-bold text-[#2C2520]">{dict.topDishes}</h2>
-                </div>
-                <p className="text-sm text-[#5A4E46] font-sans font-light">{dict.topDishesSub}</p>
-              </div>
-
-              {/* Native responsive horizontal scrolling without heavy JS */}
-              <div className="flex overflow-x-auto gap-5 pb-4 scrollbar-none snap-x snap-mandatory -mx-4 px-4 sm:mx-0 sm:px-0">
-                {topPickProducts.map((p) => (
-                  <div key={p._id} className="min-w-[240px] w-[240px] sm:min-w-[280px] sm:w-[280px] bg-white rounded-2xl overflow-hidden border border-amber-900/10 shadow-sm relative snap-start hover:shadow-md transition-all flex flex-col justify-between">
-                    <div className="relative aspect-[4/3] w-full bg-muted overflow-hidden">
-                      <img src={p.image || "/images/restaurant_interior.png"} alt={p.name[lang as "en" | "ar"]} className="object-cover w-full h-full hover:scale-105 transition-transform duration-500" />
-                      <span className="absolute top-3 left-3 bg-[#B88E4C] text-[#FAF6EE] text-[9px] px-2 py-0.5 rounded font-sans tracking-wide">
-                        {dict.bestseller}
-                      </span>
-                    </div>
-                    <div className="p-4 space-y-2">
-                      <h4 className="font-playfair font-bold text-base text-[#2C2520] truncate">{p.name[lang as "en" | "ar"]}</h4>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-semibold text-[#B88E4C] font-sans">${p.price.toFixed(2)}</span>
-                        <Link href="/menu" className="text-xs text-[#B88E4C] hover:underline font-sans font-medium">{dict.orderNow} →</Link>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
+            <TopDishesCarousel
+              products={topPickProducts}
+              lang={lang}
+              dict={dict}
+            />
           )}
 
           {/* BANNER SCROLL CAROUSEL SECTION (AFTER TOP DISHES) */}

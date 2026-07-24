@@ -167,6 +167,7 @@ export default function MenuShell({ initialDishes = [] }: { initialDishes?: Menu
                 alt="Logo"
                 width={28}
                 height={28}
+                style={{ width: "auto", height: "auto" }}
                 className="object-cover scale-110"
               />
             </div>
