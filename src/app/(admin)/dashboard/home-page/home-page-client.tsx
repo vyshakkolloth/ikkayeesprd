@@ -185,6 +185,8 @@ export default function HomePageClient({ initialSettings, products, categories }
         const cat = categories.find(c => c._id === p.categoryId)
         const inDessertCategory = cat?.name.en.toLowerCase().includes("dessert") || cat?.name.en.toLowerCase().includes("beverage") || cat?.name.en.toLowerCase().includes("sweet") || cat?.name.ar.includes("حلويات") || cat?.name.ar.includes("مشروب")
         const hasDessertTag = p.tags.includes("Dessert") || p.tags.includes("Sweet")
+        return inDessertCategory || hasDessertTag
+      }
     }
   ], [categories])
 
