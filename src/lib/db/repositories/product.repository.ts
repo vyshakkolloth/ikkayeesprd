@@ -2,9 +2,12 @@ import { BaseRepository } from "./base.repository";
 import { Product, ProductSchema } from "../schemas/product.schema";
 import { Filter, Sort, ObjectId } from "mongodb";
 
-export interface FilteredProduct extends Omit<Product, "_id" | "categoryId"> {
+export interface FilteredProduct extends Omit<Product, "_id" | "categoryId" | "pairedProductId" | "createdAt" | "updatedAt"> {
   _id: string;
   categoryId: string;
+  pairedProductId?: string | null;
+  createdAt: string;
+  updatedAt: string;
   categoryName: {
     en: string;
     ar: string;
@@ -30,10 +33,18 @@ class ProductRepository extends BaseRepository<Product> {
     }
   }
 
-  async findBySlug(slug: string): Promise<Product | null> {
+  async findBySlug(slug: string): Promise<FilteredProduct | null> {
     const doc = await this.findOne({ slug, isDeleted: { $ne: true } } as any);
     if (doc) {
-      return ProductSchema.parse(doc);
+      const parsed = ProductSchema.parse(doc);
+      return JSON.parse(
+        JSON.stringify({
+          ...parsed,
+          _id: doc._id.toString(),
+          categoryId: doc.categoryId.toString(),
+          pairedProductId: doc.pairedProductId ? doc.pairedProductId.toString() : null,
+        })
+      );
     }
     return null;
   }
@@ -177,7 +188,7 @@ class ProductRepository extends BaseRepository<Product> {
     const total = result[0]?.metadata[0]?.total || 0;
     const rawItems = result[0]?.data || [];
 
-    const items = rawItems.map((item: any) => {
+    const items: FilteredProduct[] = rawItems.map((item: any) => {
       // Map category fields
       const categoryName = item.categoryDetails
         ? { en: item.categoryDetails.name.en, ar: item.categoryDetails.name.ar }
@@ -185,12 +196,15 @@ class ProductRepository extends BaseRepository<Product> {
         
       const parsed = ProductSchema.parse(item);
       
-      return {
-        ...parsed,
-        _id: item._id.toString(),
-        categoryId: item.categoryId.toString(),
-        categoryName
-      };
+      return JSON.parse(
+        JSON.stringify({
+          ...parsed,
+          _id: item._id.toString(),
+          categoryId: item.categoryId ? item.categoryId.toString() : "",
+          pairedProductId: item.pairedProductId ? item.pairedProductId.toString() : null,
+          categoryName,
+        })
+      );
     });
 
     return {

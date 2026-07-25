@@ -79,15 +79,15 @@ export default async function Home(props: PageProps) {
 
   const currentSettings = homepageData
     ? {
-        hero: {
-          title: homepageData.hero?.title || defaultSettings.hero.title,
-          subtitle: homepageData.hero?.subtitle || defaultSettings.hero.subtitle,
-          imageUrl: homepageData.hero?.imageUrl || defaultSettings.hero.imageUrl,
-          ctaText: homepageData.hero?.ctaText || defaultSettings.hero.ctaText,
-        },
-        banners: homepageData.banners || [],
-        sectionsOrder: homepageData.sectionsOrder || DEFAULT_SECTIONS_ORDER,
-      }
+      hero: {
+        title: homepageData.hero?.title || defaultSettings.hero.title,
+        subtitle: homepageData.hero?.subtitle || defaultSettings.hero.subtitle,
+        imageUrl: homepageData.hero?.imageUrl || defaultSettings.hero.imageUrl,
+        ctaText: homepageData.hero?.ctaText || defaultSettings.hero.ctaText,
+      },
+      banners: homepageData.banners || [],
+      sectionsOrder: homepageData.sectionsOrder || DEFAULT_SECTIONS_ORDER,
+    }
     : defaultSettings;
 
   // Translation helpers
@@ -149,7 +149,7 @@ export default async function Home(props: PageProps) {
   const topPickProducts = products.filter((p) => p.topPick);
   const chefRecProducts = products.filter((p) => p.chefRecommended);
   const trendingProducts = products.filter((p) => p.tags.includes("Trending"));
-  
+
   const mandiProducts = products.filter((p) => {
     return p.tags.includes("Mandi") || p.categoryName?.[lang as "en" | "ar"]?.toLowerCase().includes("mandi") || p.categoryName?.en?.toLowerCase().includes("mandi") || p.categoryName?.ar?.includes("مندي");
   });
@@ -159,7 +159,7 @@ export default async function Home(props: PageProps) {
   });
 
   const heritageProducts = products.filter((p) => p.tags.includes("Heritage"));
-  
+
   const dessertProducts = products.filter((p) => {
     return p.tags.includes("Dessert") || p.tags.includes("Sweet") || p.categoryName?.[lang as "en" | "ar"]?.toLowerCase().includes("dessert") || p.categoryName?.en?.toLowerCase().includes("dessert") || p.categoryName?.en?.toLowerCase().includes("beverage") || p.categoryName?.ar?.includes("حلويات") || p.categoryName?.ar?.includes("مشروب");
   });
@@ -410,7 +410,7 @@ export default async function Home(props: PageProps) {
       {/* Hero / Main Section */}
       <main className="flex-grow">
         {/* HERO BANNER BLOCK */}
-        <section 
+        <section
           className="relative min-h-[450px] md:min-h-[500px] flex items-center justify-center text-center px-4 py-20 bg-cover bg-center transition-all duration-300"
           style={{ backgroundImage: `linear-gradient(rgba(44, 37, 32, 0.7), rgba(44, 37, 32, 0.7)), url(${currentSettings.hero.imageUrl})` }}
         >
@@ -441,7 +441,7 @@ export default async function Home(props: PageProps) {
 
         {/* Dynamic Homepage Sections */}
         <div className="py-20 space-y-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          
+
           {/* BANNER SCROLL CAROUSEL SECTION */}
           {currentSettings.banners && currentSettings.banners.length > 0 && (
             <section className="space-y-6">

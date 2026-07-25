@@ -54,20 +54,27 @@ class HomepageRepository extends BaseRepository<HomepageData> {
     // Attempt to fetch from dedicated 'homepage' collection first
     const doc = await this.findOne({ key: "home_settings" } as any);
     if (doc) {
-      return doc;
+      return JSON.parse(
+        JSON.stringify({
+          ...doc,
+          _id: doc._id ? doc._id.toString() : undefined,
+        })
+      );
     }
 
     // Fallback/migration path: read from existing 'settings' collection if homepage collection is not yet populated
     try {
       const fallbackSettings = await settingsRepository.getHomeSettings();
       if (fallbackSettings) {
-        return {
-          key: "home_settings",
-          hero: fallbackSettings.hero,
-          banners: fallbackSettings.banners || [],
-          sectionsOrder: ["topPick", "chefRecommended", "trending", "mandi", "seafood", "heritage", "finish"],
-          updatedAt: fallbackSettings.updatedAt || new Date(),
-        } as HomepageData;
+        return JSON.parse(
+          JSON.stringify({
+            key: "home_settings",
+            hero: fallbackSettings.hero,
+            banners: fallbackSettings.banners || [],
+            sectionsOrder: ["topPick", "chefRecommended", "trending", "mandi", "seafood", "heritage", "finish"],
+            updatedAt: fallbackSettings.updatedAt || new Date(),
+          })
+        ) as HomepageData;
       }
     } catch (err) {
       console.error("Error reading fallback home settings from settings collection:", err);
