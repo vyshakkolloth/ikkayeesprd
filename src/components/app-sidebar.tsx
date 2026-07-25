@@ -24,6 +24,7 @@ import {
   BadgeDollarSign
 } from "lucide-react"
 
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 
@@ -220,12 +221,18 @@ export function AppSidebar({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" className="h-12 bg-accent/50">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <CommandIcon className="size-4" />
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white overflow-hidden border border-border">
+                <Image
+                  src="/logos/ikkayeslogo.png"
+                  alt="Ikkayes Kitchen Logo"
+                  width={32}
+                  height={32}
+                  className="size-8 object-cover rounded-lg"
+                />
               </div>
               <div className="grid flex-1 text-start text-sm leading-tight">
-                <span className="truncate font-semibold">Acme Inc</span>
-                <span className="truncate text-xs">Enterprise</span>
+                <span className="truncate font-semibold">Ikkayes Kitchen</span>
+                <span className="truncate text-xs text-muted-foreground">Admin Dashboard</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

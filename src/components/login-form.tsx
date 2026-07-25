@@ -59,7 +59,7 @@ export function LoginForm({
       }
 
       // Refresh page routing context and redirect
-      router.push("/dashboard")
+      router.push("/dashboard/live-order")
       router.refresh()
     } catch (err) {
       setGlobalError("A connection error occurred. Please try again.")
