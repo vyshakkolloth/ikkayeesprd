@@ -1,7 +1,7 @@
 import { OrdersManager } from "@/components/admin/orders-manager";
 
 export const metadata = {
-  title: "Live Orders | Admin Dashboard",
+  title: "Live Orders",
   icons: {
     icon: "/logos/ikkayeslogo.png",
   },

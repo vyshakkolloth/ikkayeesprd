@@ -23,8 +23,8 @@ export default async function CategoryPage() {
     description: cat.description || { en: "", ar: "" },
     priority: cat.priority,
     isActive: cat.isActive,
-    createdAt: cat.createdAt.toISOString(),
-    updatedAt: cat.updatedAt.toISOString(),
+    createdAt: cat.createdAt instanceof Date ? cat.createdAt.toISOString() : new Date(cat.createdAt).toISOString(),
+    updatedAt: cat.updatedAt instanceof Date ? cat.updatedAt.toISOString() : new Date(cat.updatedAt).toISOString(),
   }));
 
   return (
